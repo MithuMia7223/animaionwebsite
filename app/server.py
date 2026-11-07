@@ -216,6 +216,17 @@ def make_voice(texts, voice, tones=None):
             if os.path.exists(aiff):
                 animator.mv.run([animator.mv.FFMPEG, "-y", "-i", aiff,
                                  "-ar", "44100", "-ac", "1", wav])
+            # 🔇 নীরবতা-কাটা — শুরু/শেষের ফাঁক কেটে কথা টাইট (মাঝের ভাঁজ অটুট)
+            try:
+                tmp = wav + ".trim.wav"
+                animator.mv.run([animator.mv.FFMPEG, "-y", "-i", wav, "-af",
+                                 "silenceremove=start_periods=1:start_threshold=-42dB:start_silence=0.12,"
+                                 "areverse,silenceremove=start_periods=1:start_threshold=-42dB:start_silence=0.18,areverse",
+                                 "-ar", "44100", "-ac", "1", tmp])
+                if os.path.exists(tmp) and os.path.getsize(tmp) > 400:
+                    os.replace(tmp, wav)
+            except Exception:  # noqa: BLE001
+                pass
             apply_tone(wav, (tones or [None] * len(texts))[i] if i < len(tones or []) else None)
             d = animator.ml.probe(wav)[0]
             env = wav_envelope(wav)
