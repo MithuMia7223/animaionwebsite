@@ -13,3 +13,6 @@ assets/auto_in/
 .DS_Store
 *.log
 mithu_test.log
+
+# LLM মডেল-ফাইল (৬.৬ GB — এক কমান্ডে আবার পুল করা যায়: ollama pull)
+app/llm/models/
