@@ -762,10 +762,11 @@ const CHAR_GROUPS = [
                 "hero", "astronaut"]],
   ["🐾 প্রাণী", ["cat", "tiger", "lion", "dog", "rabbit", "bear", "panda",
                 "monkey", "elephant", "fox", "mouse", "cow", "deer", "goat", "parrot",
-                "horse", "sheep", "donkey", "camel",
-                "peacock", "duck", "bee", "shark",
-                "frog", "owl", "penguin", "chick", "bird", "fish", "turtle",
-                "dino", "unicorn"]],
+                "horse", "sheep", "donkey", "camel", "crocodile", "rhino", "giraffe",
+                "hippo", "pig", "lizard", "kitten", "shark",
+                "peacock", "duck", "bee", "crow", "butterfly", "hen", "rooster",
+                "frog", "owl", "penguin", "chick", "bird", "fish", "dolphin", "whale",
+                "turtle", "dino", "unicorn"]],
   ["✨ কল্পনা", ["robot", "alien", "ghost", "fairy"]]
 ];
 
@@ -1163,6 +1164,85 @@ const CHARS = {
     muzzle: "#ffffff", nose: "#d9a8c8",
     mane: false, horn: "uni", tail: "bush", forelock: "#ff9ec4"
   },
+  crow: {
+    kind: "bird", body: "bird", name: "কাক", label: "কাক", emoji: "🐦‍⬛",
+    fur: "#2b2b33", furD: "#17171d",
+    beak: "#6b7280", muzzle: "#4b5563", tail: "none"
+  },
+  butterfly: {
+    kind: "bird", body: "bird", name: "প্রজাপতি", label: "প্রজাপতি", emoji: "🦋",
+    fur: "#d946ef", furD: "#a21caf",
+    beak: "#1f2937", wings: true, tail: "none"
+  },
+  dolphin: {
+    kind: "animal", body: "fish", name: "ডলফিন", label: "ডলফিন", emoji: "🐬",
+    fur: "#7dd3fc", furD: "#0284c7",
+    muzzle: "#e0f2fe"
+  },
+  whale: {
+    kind: "animal", body: "fish", name: "তিমি", label: "তিমি", emoji: "🐋",
+    fur: "#3b5b92", furD: "#1e3a5f",
+    muzzle: "#93c5fd"
+  },
+  crocodile: {
+    quad: true,
+    kind: "animal", body: "animal", name: "কুম্ভীর", label: "কুম্ভীর", emoji: "🐊",
+    fur: "#4d7c0f", furD: "#365314",
+    muzzle: "#d9e8c4", nose: "#1a2e05",
+    ears: "small", tail: "bush"
+  },
+  rhino: {
+    quad: true,
+    kind: "animal", body: "animal", name: "গণ্ডার", label: "গণ্ডার", emoji: "🦏",
+    fur: "#8d8d93", furD: "#5f5f66",
+    muzzle: "#c4c4c9", nose: "#3f3f46",
+    ears: "small", tail: "thin"
+  },
+  giraffe: {
+    quad: true,
+    kind: "animal", body: "animal", name: "জিরাফ", label: "জিরাফ", emoji: "🦒",
+    fur: "#eab308", furD: "#a16207",
+    muzzle: "#fef3c7", nose: "#713f12",
+    ears: "small", tail: "thin"
+  },
+  pig: {
+    quad: true,
+    kind: "animal", body: "animal", name: "শুকর", label: "শুকর", emoji: "🐷",
+    fur: "#f9a8d4", furD: "#ec4899",
+    muzzle: "#fce7f3", nose: "#be185d",
+    ears: "small", tail: "thin"
+  },
+  hippo: {
+    quad: true,
+    kind: "animal", body: "animal", name: "হিপ্পো", label: "হিপ্পো", emoji: "🦛",
+    fur: "#7c6f9f", furD: "#575070",
+    muzzle: "#c4b5fd", nose: "#312e5c",
+    ears: "small", tail: "thin"
+  },
+  lizard: {
+    quad: true, smallCritter: true, legW: 9,
+    kind: "animal", body: "animal", name: "টিকটিকি", label: "টিকটিকি", emoji: "🦎",
+    fur: "#84cc16", furD: "#4d7c0f",
+    muzzle: "#d9f99d", nose: "#365314",
+    ears: "small", tail: "thin"
+  },
+  kitten: {
+    quad: true, smallCritter: true, legW: 11,
+    kind: "animal", body: "animal", name: "বেড়ালছানা", label: "বেড়ালছানা", emoji: "🐱",
+    fur: "#fbbf24", furD: "#d97706",
+    muzzle: "#fef9c3", nose: "#fb7185",
+    ears: "cat", tail: "cat", whiskers: true
+  },
+  hen: {
+    kind: "bird", body: "bird", name: "মুরগি", label: "মুরগি", emoji: "🐔",
+    fur: "#fef3c7", furD: "#e7c873",
+    beak: "#f59e0b", muzzle: "#fff7e0", tail: "none"
+  },
+  rooster: {
+    kind: "bird", body: "bird", name: "মোরগ", label: "মোরগ", emoji: "🐓",
+    fur: "#dc2626", furD: "#991b1b",
+    beak: "#f59e0b", muzzle: "#fee2e2", tail: "none"
+  },
   robot: {
     kind: "robot", body: "robot", name: "রোবট", label: "রোবট", emoji: "🤖",
     fur: "#b8c4d6", furD: "#8d9bb0",
@@ -1230,6 +1310,19 @@ const CHAR_MAP = [
   [["গাধা", "গাধার", "donkey"], "donkey"],
   [["হাঙর", "হাঙ্গর", "শার্ক", "shark"], "shark"],
   [["মৌমাছি", "মৌমাছী", "মাছি", "bee"], "bee"],
+  [["কাক", "কাকে", "crow"], "crow"],
+  [["প্রজাপতি", "প্রজাপতী", "butterfly"], "butterfly"],
+  [["ডলফিন", "dolphin"], "dolphin"],
+  [["তিমি", "তিমি মাছ", "whale"], "whale"],
+  [["কুম্ভীর", "কুম্ভির", "crocodile"], "crocodile"],
+  [["গণ্ডার", "rhino"], "rhino"],
+  [["জিরাফ", "giraffe"], "giraffe"],
+  [["শুকর", "শূকর", "pig"], "pig"],
+  [["হিপ্পো", "জলহস্তী", "hippo"], "hippo"],
+  [["টিকটিকি", "lizard"], "lizard"],
+  [["বেড়ালছানা", "kitten"], "kitten"],
+  [["মুরগি", "hen"], "hen"],
+  [["মোরগ", "rooster"], "rooster"],
   [["মুরগি", "মুরগিছানা", "ছানা", "chick"], "chick"],
   [["পাখি", "পাখী", "টিয়া", "bird"], "bird"],
 
@@ -5635,6 +5728,9 @@ const REAL_SIZE = {
   mouse: 0.38, chick: 0.34,
   camel: 1.30,
   peacock: 0.55, duck: 0.48, donkey: 0.92, shark: 1.25, bee: 0.22,
+  crow: 0.50, butterfly: 0.28, dolphin: 1.10, whale: 1.80,
+  crocodile: 1.10, rhino: 1.25, giraffe: 1.60, pig: 0.80, hippo: 1.35,
+  lizard: 0.30, kitten: 0.42, hen: 0.55, rooster: 0.60,
   /* মানুষ */
   boy: 1.00, girl: 1.00, man: 1.00, woman: 1.00, baby: 1.00,
   grandpa: 0.98, grandma: 0.96, doctor: 1.00, chef: 1.00,
