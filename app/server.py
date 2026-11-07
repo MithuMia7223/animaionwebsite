@@ -36,6 +36,9 @@ from animator import server as animator     # noqa: E402
 OUT = os.path.join(ROOT, "output")
 WEB = os.path.join(ROOT, "web")
 DATA = os.path.join(ROOT, "data")
+# 🎙️ Piper নিউরাল TTS — অফলাইন বাংলা কণ্ঠ (মডেল app/voices/ এ বান্ডেল)
+PIPER_MODEL = os.path.join(ROOT, "voices", "bn_BD-google-medium.onnx")
+PIPER_CONFIG = os.path.join(ROOT, "voices", "bn_BD-google-medium.onnx.json")
 os.makedirs(OUT, exist_ok=True)
 os.makedirs(DATA, exist_ok=True)
 CHAR_FILE = os.path.join(DATA, "characters.json")
@@ -71,6 +74,11 @@ TONE_FX = {
     "ghost": "tremolo=f=4.5:d=0.9",
     "alien": "tremolo=f=6:d=0.85",
 }
+
+
+def piper_ready():
+    """Piper মডেল + কনফিগ দুটোই জায়গামতো আছে কিনা।"""
+    return os.path.exists(PIPER_MODEL) and os.path.exists(PIPER_CONFIG)
 
 
 def apply_tone(wav, tone):
@@ -176,24 +184,38 @@ def make_voice(texts, voice, tones=None):
         aiff = os.path.join(folder, f"v{i:03d}.aiff")
         wav = os.path.join(folder, f"v{i:03d}.wav")
 
+        # 🎙️ ইঞ্জিন ১: Piper নিউরাল TTS — voice="piper" দিলে (মডেল app/voices/ এ)
         ok = False
-        for cmd in (["say", "-v", voice, "-o", aiff, txt],
-                    ["say", "-o", aiff, txt]):
+        if voice == "piper" and piper_ready():
             try:
-                p = subprocess.run(cmd, capture_output=True, timeout=120)
-                if p.returncode == 0 and os.path.exists(aiff):
-                    ok = True
-                    break
+                animator.mv.run([sys.executable, "-m", "piper",
+                                 "-m", PIPER_MODEL, "-c", PIPER_CONFIG,
+                                 "-f", wav, txt])
+                ok = os.path.exists(wav) and os.path.getsize(wav) > 400
             except Exception:  # noqa: BLE001
-                pass
+                ok = False
+
+        # 🎙️ ইঞ্জিন ২: macOS say — ফলব্যাক (Piya/Samantha/...)
+        if not ok:
+            for cmd in (["say", "-v", voice, "-o", aiff, txt],
+                        ["say", "-o", aiff, txt]):
+                try:
+                    p = subprocess.run(cmd, capture_output=True, timeout=120)
+                    if p.returncode == 0 and os.path.exists(aiff):
+                        ok = True
+                        break
+                except Exception:  # noqa: BLE001
+                    pass
 
         if not ok:
             items.append({"i": i, "dur": 0.0})
             continue
 
         try:
-            animator.mv.run([animator.mv.FFMPEG, "-y", "-i", aiff,
-                             "-ar", "44100", "-ac", "1", wav])
+            # piper সরাসরি wav দেয়; say দেয় aiff — aiff থাকলে রূপান্তর
+            if os.path.exists(aiff):
+                animator.mv.run([animator.mv.FFMPEG, "-y", "-i", aiff,
+                                 "-ar", "44100", "-ac", "1", wav])
             apply_tone(wav, (tones or [None] * len(texts))[i] if i < len(tones or []) else None)
             d = animator.ml.probe(wav)[0]
             env = wav_envelope(wav)
