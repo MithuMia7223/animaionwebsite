@@ -2435,8 +2435,8 @@ function drawBokeh(sc, t, w, h){
   ctx.restore();
 }
 
-/* দৃশ্যের উপর মুড-আলো + ভিনিয়েট — ফ্ল্যাট-ছবি প্রোডাকশন-ছবি হয়ে ওঠে */
-function drawMoodGrade(mood, w, h){
+/* দুনিয়ার উপর মুড-আলো — শুধু bg-স্তরে বসে, ক্যারেক্টর আলোকিত থাকে */
+function drawMoodTint(mood, w, h){
   ctx.save();
   if(mood === "night"){
     ctx.fillStyle = "rgba(10,18,56,.32)";
@@ -2460,7 +2460,12 @@ function drawMoodGrade(mood, w, h){
     ctx.fillStyle = "rgba(255,250,215,.07)";
     ctx.fillRect(0, 0, w, h);
   }
-  // ভিনিয়েট — কিনারা হালকা গাঢ়, চোখ মাঝের গল্পে চলে আসে
+  ctx.restore();
+}
+
+/* 🎬 ভিনিয়েট — কিনারা হালকা গাঢ়, চোখ মাঝের গল্পে চলে আসে (সবার উপরে) */
+function drawVignette(w, h){
+  ctx.save();
   const v = ctx.createRadialGradient(w / 2, h * 0.45, Math.min(w, h) * 0.38,
                                      w / 2, h * 0.50, Math.max(w, h) * 0.72);
   v.addColorStop(0, "rgba(0,0,0,0)");
@@ -5442,12 +5447,12 @@ function drawQuadChar(spec, a, sc, lt){
   ctx.beginPath(); ctx.ellipse(0, 134, 116, 12, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 
-  // 🛌 ভঙ্গি — শুলে/বসলে দেহ নিচু-চাপা (সত্যি-প্রাণীর-মতো)
+  // 🛌 ভঙ্গি — শুলে/বসলে দেহ নিচু-চাপা (সত্যি-প্রাণীর-মতো); শুলে-দেহ মাটিতেই বসে
   const act = a.action || "";
   const lying = act === "sleep", sitting = act === "sit";
-  const poseY = lying ? 50 : sitting ? 28 : 0;
+  const poseY = lying ? 68 : sitting ? 28 : 0;
   const poseSy = lying ? 0.60 : sitting ? 0.80 : 1;
-  const poseSx = lying ? 1.08 : sitting ? 1.04 : 1;
+  const poseSx = lying ? 1.02 : sitting ? 1.04 : 1;
   ctx.save();
   ctx.translate(0, poseY);
   ctx.scale(poseSx, poseSy);
@@ -7155,19 +7160,21 @@ function draw(t, playing){
   const paint = (scene, st, gt, textAlpha = 1) => {
     const c2 = S.showCamera ? camAt(scene, st, w, h) : { z: 1, dx: 0, dy: 0 };
 
-    // 🎥 তিন-স্তর প্যারালাক্স — background ধীরে (০.৩৫), ফ্লোরা মাঝে (০.৬),
-    // ক্যারেক্টর সামনে (০.৮৫) — ক্যামেরা নড়লে গভীরতা সত্যি বোঝা যায়
+    // 🎥 প্যারালাক্স — আকাশের মেঘ/তারা দূরের স্তর (০.৩৫, ধীরে সরে);
+    // মাটি-সংযুক্ত সবকিছু (দৃশ্য+ফ্লোরা+ক্যারেক্টর) এক গতিতে — নইলে
+    // ক্যামেরা নড়লে পা মাটি ছেড়ে ভাসতে শুরু করে
     ctx.save();
     camApply(c2, 0.35, w, h);
     ctx.translate(w / 2, h / 2); ctx.scale(1.07, 1.07); ctx.translate(-w / 2, -h / 2);
-    drawBackground(scene, gt, w, h, c2);
     drawLoopBG(scene, gt, w, h, c2);
     ctx.restore();
 
     ctx.save();
-    camApply(c2, 0.60, w, h);
-    ctx.translate(w / 2, h / 2); ctx.scale(1.05, 1.05); ctx.translate(-w / 2, -h / 2);
-    drawFloraDetails(scene, gt, w, h);     // 🌸 ফুল-পাথর-পাখি-প্রজাপতি — দৃশ্য-জীবন্ত
+    camApply(c2, 1.0, w, h);
+    ctx.translate(w / 2, h / 2); ctx.scale(1.04, 1.04); ctx.translate(-w / 2, -h / 2);
+    drawBackground(scene, gt, w, h, c2);
+    drawMoodTint(scene.mood, w, h);        /* 🎨 মুড-আলো দুনিয়ার উপর — ক্যারেক্টর আলোকিত থাকে */
+    drawFloraDetails(scene, gt, w, h);     /* 🌸 ফুল-পাথর-পাখি-প্রজাপতি — দৃশ্য-জীবন্ত */
     drawSparkles(scene, gt, w, h);
     ctx.restore();
 
@@ -7175,7 +7182,7 @@ function draw(t, playing){
       // দৃশ্য বা সংলাপ থাকলেই ক্যারেক্টার মাটিতে দাঁড়ায় — কেউ হাওয়ায় ভাসে না
       const sceneGround = (scene.scene || scene.speaker) ? (scene.scene === "stage" ? 0.87 : 0.90) : null;
       ctx.save();
-      camApply(c2, 0.85, w, h);
+      camApply(c2, 1.0, w, h);   /* মাটির সাথে এক গতিতে — পা কখনো ভাসে না */
       // সংলাপের দৃশ্য হলে স্পিকার + শোনক; "রাজু ও মিতু..." থাকলে সবাই পাশাপাশি;
       // স্ক্রিপ্টে "ডানে/বাঁয়ে" লেখা থাকলে সেটাই জায়গা ঠিক করে
       const px = scene._posX || undefined;
@@ -7194,8 +7201,8 @@ function draw(t, playing){
     // 🎥 ফোরগ্রাউন্ড bokeh — নরম অবাস্তব আলোর বৃত্ত (গভীরতার অনুভূতি)
     drawBokeh(scene, gt, w, h);
 
-    // 🎨 রঙ-গ্রেডিং — মুড-আলো দৃশ্যের সবকিছুর উপর, লেখা পড়ে থাকে স্পষ্ট
-    drawMoodGrade(scene.mood, w, h);
+    // 🎬 ভিনিয়েট — সবার উপর, শুধু কিনারা গাঢ় হয়
+    drawVignette(w, h);
 
     if(textAlpha > 0.01){
       ctx.save();
