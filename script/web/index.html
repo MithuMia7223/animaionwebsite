@@ -1111,7 +1111,7 @@ const CHAR_MAP = [
   [["রোবট", "robot"], "robot"],
   [["এলিয়েন", "alien"], "alien"],
   [["ভুত", "ভূত", "ghost"], "ghost"],
-  [["পরি", "পরিটা", "পরিটি", "fairy"], "fairy"],
+  [["পরি", "পরী", "পরিটা", "পরিটী", "fairy"], "fairy"],
   [["মুরগি", "মুরগিছানা", "ছানা", "chick"], "chick"],
   [["পাখি", "পাখী", "টিয়া", "bird"], "bird"],
 
@@ -5228,16 +5228,24 @@ function drawGroup(sc, lt, t, w, h, groundY){
   });
 }
 
-/* 🐘 বাস্তব-আপেক্ষিক মাপ — প্রতিটা প্রাণী যেমন বাস্তবে তেমন দেখায়:
+/* 🐘 বাস্তব-আপেক্ষিক মাপ — প্রতিটা ক্যারেক্টরের নিজের টিউন-সংখ্যা:
    হাতি বিশাল, ঘোড়া/গরু বড়, শিয়াল-বিড়াল ছোট, ইঁদুর-ছানা সবচেয়ে ছোট।
-   ভাল্লুক ১.০ — আগের মাপেই। মানুষ টেবিলে নেই (humanBoost আলাদা)। */
+   মানুষরা ১.০ (humanBoost আলাদায় বড় দেখায়), বৃদ্ধরা সামান্য খাটো। */
 const REAL_SIZE = {
-  elephant: 1.50, dino: 1.42, camel: 1.30, horse: 1.28, cow: 1.22,
+  /* প্রাণী */
+  elephant: 1.50, dino: 1.42, horse: 1.28, cow: 1.22,
   unicorn: 1.15, lion: 1.12, deer: 1.05, tiger: 1.05, bear: 1.00,
   panda: 0.95, sheep: 0.95, goat: 0.88, dog: 0.85, monkey: 0.80,
   fox: 0.74, penguin: 0.66, cat: 0.62, owl: 0.58, turtle: 0.55,
   rabbit: 0.55, fish: 0.60, parrot: 0.50, bird: 0.50, frog: 0.42,
-  mouse: 0.38, chick: 0.34
+  mouse: 0.38, chick: 0.34,
+  /* মানুষ */
+  boy: 1.00, girl: 1.00, man: 1.00, woman: 1.00, baby: 1.00,
+  grandpa: 0.98, grandma: 0.96, doctor: 1.00, chef: 1.00,
+  teacher: 1.00, king: 1.02, farmer: 1.00, princess: 0.98,
+  hero: 1.02, astronaut: 1.00,
+  /* কল্পনার */
+  robot: 1.00, alien: 0.95, ghost: 1.02, fairy: 0.70
 };
 
 function drawChar(sc, lt, t, w, h, groundY, posX, scaleMul){
