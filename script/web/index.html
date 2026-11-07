@@ -270,6 +270,11 @@
           <button class="chip" data-sample="ad">📢 বিজ্ঞাপন</button>
           <button class="chip" data-sample="school">🏫 স্কুলের দিন</button>
           <button class="chip" data-sample="bristi">🌧️ বৃষ্টির দিন</button>
+
+          <div id="llmPanel" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <input id="llmTopic" type="text" placeholder="✨ গল্পের বিষয় লিখো — যেমন: খরগোশ আর কচ্ছপের বন্ধুত্ব" style="flex:1;min-width:200px" maxlength="120">
+            <button class="chip" id="llmGo" title="লোকাল LLM দিয়ে গল্প লিখে দেবে (অফলাইন)">✨ LLM গল্প লেখো</button>
+          </div>
         </div>
 
         <div class="hint">
@@ -8376,6 +8381,30 @@ try{
  "#char", "#useChar", "#useLip", "#useCamera", "#useTransition", "#scene"].forEach(sel => {
   $(sel).addEventListener("change", () => rebuild(true));
 });
+
+$("#llmGo").onclick = async () => {
+  const topic = $("#llmTopic").value.trim();
+  if(!topic) return setStatus("err", "গল্পের বিষয় লিখো — যেমন: হাতি আর চিকন ইঁদুরের বন্ধুত্ব");
+  const b = $("#llmGo");
+  b.disabled = true; b.textContent = "⏳ লিখছি...";
+  setStatus("busy", "🧠 লোকাল LLM গল্প লিখছে... (১০-৪০ সেকেন্ড)");
+  try{
+    const r = await fetch("/api/llm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topic: topic })
+    });
+    const d = await r.json();
+    if(!d.ok || !d.story) throw new Error(d.error || "গল্প তৈরি হয়নি");
+    $("#script").value = d.story.split("\n").filter(l => l.trim()).join("\n");
+    rebuild(false);
+    setStatus("ok", "✅ গল্প তৈরি — পছন্দ না হলে আবার চাপো, নতুন গল্প আসবে");
+  }catch(e){
+    setStatus("err", e.message || "LLM চালু হয়নি");
+  }finally{
+    b.disabled = false; b.textContent = "✨ LLM গল্প লেখো";
+  }
+};
 
 document.querySelectorAll("[data-sample]").forEach(btn => {
   btn.onclick = () => {

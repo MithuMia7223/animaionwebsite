@@ -39,6 +39,14 @@ DATA = os.path.join(ROOT, "data")
 # 🎙️ Piper নিউরাল TTS — অফলাইন বাংলা কণ্ঠ (মডেল app/voices/ এ বান্ডেল)
 PIPER_MODEL = os.path.join(ROOT, "voices", "bn_BD-google-medium.onnx")
 PIPER_CONFIG = os.path.join(ROOT, "voices", "bn_BD-google-medium.onnx.json")
+# 🧠 লোকাল LLM (Ollama) — গল্প-বুদ্ধির জন্য (অফলাইন)
+LLM_DIR = os.path.join(ROOT, "llm")
+LLM_BIN = os.path.join(LLM_DIR, "bin", "ollama")
+LLM_MODELS_DIR = os.path.join(LLM_DIR, "models")
+OLLAMA_PORT = 11434
+OLLAMA_URL = f"http://127.0.0.1:{OLLAMA_PORT}"
+OLLAMA_MODELS_PREF = ["qwen2.5:7b-instruct", "qwen2.5:3b-instruct"]
+_llama_proc = None
 os.makedirs(OUT, exist_ok=True)
 os.makedirs(DATA, exist_ok=True)
 CHAR_FILE = os.path.join(DATA, "characters.json")
@@ -74,6 +82,85 @@ TONE_FX = {
     "ghost": "tremolo=f=4.5:d=0.9",
     "alien": "tremolo=f=6:d=0.85",
 }
+
+
+def ensure_ollama():
+    """লোকাল Ollama সার্ভার চালু আছে কিনা — না থাকলে প্রজেক্টের বাইনারি দিয়ে চালু।"""
+    global _llama_proc
+    import urllib.request
+    try:
+        with urllib.request.urlopen(OLLAMA_URL + "/api/version", timeout=2):
+            return True
+    except Exception:  # noqa: BLE001
+        pass
+    if not os.path.exists(LLM_BIN):
+        return False
+    try:
+        env = dict(os.environ, OLLAMA_MODELS=LLM_MODELS_DIR)
+        _llama_proc = subprocess.Popen([LLM_BIN, "serve"], env=env,
+                                       stdout=subprocess.DEVNULL,
+                                       stderr=subprocess.DEVNULL)
+    except Exception:  # noqa: BLE001
+        return False
+    import urllib.request as ur
+    for _ in range(20):
+        try:
+            with ur.urlopen(OLLAMA_URL + "/api/version", timeout=2):
+                return True
+        except Exception:  # noqa: BLE001
+            time.sleep(0.5)
+    return False
+
+
+def ollama_model():
+    """যে মডেল পুল করা আছে — ৭বি আগে, না পেলে ৩বি।"""
+    import urllib.request, json
+    try:
+        with urllib.request.urlopen(OLLAMA_URL + "/api/tags", timeout=3) as r:
+            names = [m.get("name", "") for m in json.load(r).get("models", [])]
+    except Exception:  # noqa: BLE001
+        return None
+    for pref in OLLAMA_MODELS_PREF:
+        for n in names:
+            if n.startswith(pref):
+                return n
+    return names[0] if names else None
+
+
+LLM_STORY_SYSTEM = """তুমি বাংলা শিশুতোষ নীতিকথা-গল্প লেখক। ঠিক নিচের উদাহরণের মতো ধাঁচে গল্প লেখো — ৬টা ছোট সহজ বাংলা বাক্য, প্রতিটা আলাদা লাইনে, ৩ নম্বর লাইনে কোনো চরিত্রের সংলাপ (নাম: কথা), শেষ লাইনে এক লাইনের শিক্ষা। উদাহরণ দেখো:
+
+ভাল্লুক জঙ্গলে মধু খুঁজছিল।
+শিয়াল এসে বলল: ভাই, মধুর খবর পেয়েছি!
+দুই বন্ধু পথ ধরল সন্ধ্যায়।
+কিন্তু শিয়াল লোভ করে সব মধু খেয়ে ফেলল।
+ভাল্লুক বলল: লোভ করলে বন্ধুও হারায়।"""
+
+
+def llm_story(topic):
+    """লোকাল LLM দিয়ে গল্প তৈরি — few-shot ধাঁচে।"""
+    if not ensure_ollama():
+        return None
+    model = ollama_model()
+    if not model:
+        return None
+    import urllib.request, json as _json
+    payload = _json.dumps({
+        "model": model,
+        "messages": [
+            {"role": "system", "content": LLM_STORY_SYSTEM},
+            {"role": "user", "content": "বিষয়: " + topic}
+        ],
+        "stream": False,
+        "options": {"temperature": 0.8}
+    }).encode()
+    req = urllib.request.Request(OLLAMA_URL + "/api/chat", data=payload,
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=180) as r:
+            data = _json.load(r)
+        return (data.get("message", {}) or {}).get("content", "").strip() or None
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def piper_ready():
@@ -861,6 +948,18 @@ class Handler(BaseHTTPRequestHandler):
                     sfx=_parse_sfx((q.get("sfx", [""])[0] or "")),
                     sscenes=_parse_sscen((q.get("sscen", [""])[0] or "")),
                 )
+
+            elif path == "/api/llm":
+                payload = json.loads(self.rfile.read(
+                    int(self.headers.get("Content-Length", 0)) or 2) or b"{}")
+                topic = " ".join(str(payload.get("topic") or "").split())[:200]
+                if not topic:
+                    result = {"ok": False, "error": "গল্পের বিষয় লিখো"}
+                else:
+                    story = llm_story(topic)
+                    result = ({"ok": True, "story": story} if story
+                              else {"ok": False,
+                                    "error": "লোকাল LLM চালু হয়নি — ollama দরকার"})
 
             elif path == "/api/scene/render":
                 q2 = parse_qs(parsed.query)
