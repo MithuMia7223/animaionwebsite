@@ -2298,7 +2298,8 @@ function layout(sc, w, h){
 
     const widest = Math.max(...lines.map(l => ctx.measureText(l.join(" ")).width), 0);
     const lineH = fs * 1.34;
-    const tooTall = lines.length * lineH > h * 0.44;
+    const tallMax = (sc.scene || sc.speaker) ? h * 0.30 : h * 0.44;
+    const tooTall = lines.length * lineH > tallMax;
     const tooWide = widest > maxW * 1.001;
     if(!tooTall && !tooWide) break;
     fs = Math.max(18, Math.round(fs * 0.92));
@@ -2307,8 +2308,8 @@ function layout(sc, w, h){
   const lineH = fs * 1.34;
   const blockH = lines.length * lineH;
   const emojiOn = S.showEmoji;
-  // দৃশ্য-ব্যাকগ্রাউন্ড বা সংলাপ থাকলে লেখা ওপরে থাকে — ক্যারেক্টার নিচে দাঁড়ায়
-  const centerY = (sc.scene || sc.speaker) ? h * 0.40 : (emojiOn ? h * 0.63 : h * 0.52);
+  // দৃশ্য/সংলাপ থাকলে লেখা উপরের-ব্যান্ডে — ক্যারেক্টরের মুখ আর কখনো ঢাকা পড়ে না
+  const centerY = (sc.scene || sc.speaker) ? h * 0.26 : (emojiOn ? h * 0.63 : h * 0.52);
   const topY = centerY - blockH / 2;
 
   // প্রতি শব্দের পজিশন
