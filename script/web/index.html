@@ -2233,6 +2233,7 @@ function makeScenes(lines){
         lastMood = m;
         return m;
       })(),
+      props: detectProps(say),
       cam: cams[i % cams.length],
       trans: trans[i % trans.length],
       env: [],
@@ -2492,6 +2493,104 @@ const MOOD_MAP = [
   [["ভোর", "সকাল", "সূর্য ওঠে"], "dawn"],
   [["দুপুর", "মধ্যাহ্ন"], "noon"]
 ];
+
+/* 🎁 প্রপস — গল্পের জিনিসপত্র ক্যানভাসে অটো (কীওয়ার্ড থেকে) */
+const PROPS_MAP = [
+  [["মধু"], "honey"],
+  [["বই", "পড়"], "book"],
+  [["গাড়ি"], "car"],
+  [["বল", "ফুটবল", "খেল"], "ball"],
+  [["আপেল", "ফল"], "apple"],
+  [["মুকুট", "রাজা", "রানী"], "crown"],
+  [["উপহার", "টিফিন", "বক্স"], "gift"]
+];
+
+function detectProps(text){
+  const low = (text || "").toLowerCase();
+  const out = [];
+  for(const [keys, key] of PROPS_MAP){
+    for(const k of keys){
+      if(matchKey(low, k.toLowerCase())){ out.push(key); break; }
+    }
+  }
+  return out.slice(0, 2);
+}
+
+/* প্রপ আঁকা — মাটিতে ছায়াসহ, হালকা দোলা */
+function drawProps(sc, t, w, h){
+  const props = sc.props || [];
+  if(!props.length) return;
+  const ground = h * 0.90;
+  const size = Math.min(w, h) * 0.075;
+  props.forEach((p, i) => {
+    const x = w * (0.76 + i * 0.12);
+    const y = ground - size * 0.55;
+    const bob = Math.sin(t * 1.6 + i * 2) * size * 0.05;
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.ellipse(x, ground + size * 0.06, size * 0.55, size * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.translate(x, y + bob);
+    ctx.lineWidth = Math.max(1.5, size * 0.045);
+    if(p === "honey"){
+      ctx.fillStyle = "#d97706";
+      ctx.beginPath(); ctx.ellipse(0, 0, size * 0.42, size * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#92400e";
+      ctx.fillRect(-size * 0.34, -size * 0.56, size * 0.68, size * 0.14);
+      ctx.fillStyle = "#fde68a";
+      ctx.beginPath(); ctx.ellipse(0, 0, size * 0.2, size * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+    } else if(p === "book"){
+      ctx.fillStyle = "#7c3aed";
+      ctx.fillRect(-size * 0.45, -size * 0.1, size * 0.9, size * 0.22);
+      ctx.fillStyle = "#8b5cf6";
+      ctx.fillRect(-size * 0.42, -size * 0.38, size * 0.84, size * 0.26);
+      ctx.strokeStyle = "#f5f3ff"; ctx.lineWidth = Math.max(1, size * 0.03);
+      ctx.beginPath(); ctx.moveTo(-size * 0.34, -size * 0.12); ctx.lineTo(size * 0.34, -size * 0.12); ctx.stroke();
+    } else if(p === "car"){
+      ctx.fillStyle = "#ef4444";
+      roundRect(-size * 0.55, -size * 0.18, size * 1.1, size * 0.38, size * 0.1); ctx.fill();
+      ctx.fillStyle = "#fca5a5";
+      roundRect(-size * 0.28, -size * 0.42, size * 0.56, size * 0.28, size * 0.08); ctx.fill();
+      ctx.fillStyle = "#1f2937";
+      ctx.beginPath(); ctx.arc(-size * 0.3, size * 0.2, size * 0.14, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(size * 0.3, size * 0.2, size * 0.14, 0, Math.PI * 2); ctx.fill();
+    } else if(p === "ball"){
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(0, 0, size * 0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#22c55e"; ctx.lineWidth = Math.max(2, size * 0.07);
+      ctx.beginPath(); ctx.arc(0, 0, size * 0.4, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, size * 0.4, -0.5, 2.2); ctx.stroke();
+    } else if(p === "apple"){
+      ctx.fillStyle = "#ef4444";
+      ctx.beginPath(); ctx.arc(0, size * 0.06, size * 0.36, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#7c3aed"; ctx.lineWidth = Math.max(2, size * 0.06);
+      ctx.beginPath(); ctx.moveTo(0, -size * 0.28); ctx.quadraticCurveTo(size * 0.1, -size * 0.5, size * 0.04, -size * 0.62); ctx.stroke();
+      ctx.fillStyle = "#22c55e";
+      ctx.beginPath(); ctx.ellipse(size * 0.18, -size * 0.5, size * 0.14, size * 0.07, -0.4, 0, Math.PI * 2); ctx.fill();
+    } else if(p === "crown"){
+      ctx.fillStyle = "#eab308";
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.45, size * 0.15);
+      ctx.lineTo(-size * 0.45, -size * 0.25);
+      ctx.lineTo(-size * 0.22, size * 0.02);
+      ctx.lineTo(0, -size * 0.38);
+      ctx.lineTo(size * 0.22, size * 0.02);
+      ctx.lineTo(size * 0.45, -size * 0.25);
+      ctx.lineTo(size * 0.45, size * 0.15);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#ef4444";
+      ctx.beginPath(); ctx.arc(0, size * 0.04, size * 0.07, 0, Math.PI * 2); ctx.fill();
+    } else if(p === "gift"){
+      ctx.fillStyle = "#ec4899";
+      roundRect(-size * 0.42, -size * 0.3, size * 0.84, size * 0.62, size * 0.06); ctx.fill();
+      ctx.fillStyle = "#f472b6";
+      ctx.fillRect(-size * 0.07, -size * 0.3, size * 0.14, size * 0.62);
+      ctx.fillRect(-size * 0.42, -size * 0.05, size * 0.84, size * 0.12);
+    }
+    ctx.restore();
+  });
+}
 
 /* 🎥 ফোরগ্রাউন্ড bokeh — ধীরে ভাসমান নরম আলোর বৃত্ত; ফ্রেমে অবাস্তব
    গভীরতার অনুভূতি আনে (ক্যামেরার ফোকাস-বাইরের আলো যেমন দেখায়) */
@@ -7296,6 +7395,7 @@ function draw(t, playing){
     drawMoodTint(scene.mood, w, h);        /* 🎨 মুড-আলো দুনিয়ার উপর — ক্যারেক্টর আলোকিত থাকে */
     drawFloraDetails(scene, gt, w, h);     /* 🌸 ফুল-পাথর-পাখি-প্রজাপতি — দৃশ্য-জীবন্ত */
     drawSparkles(scene, gt, w, h);
+    drawProps(scene, gt, w, h);            /* 🎁 গল্পের জিনিসপত্র — মাটিতে */
     ctx.restore();
 
     if(S.showChar && (scene.char || scene.speaker || (scene.cast && scene.cast.length > 1))){
