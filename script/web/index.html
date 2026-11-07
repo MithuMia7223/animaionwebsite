@@ -5768,6 +5768,10 @@ function drawBody(spec, a){
     pantsGrad.addColorStop(1, darken(spec.pants, 0.16));
     ctx.fillStyle = pantsGrad;
     ctx.beginPath(); ctx.ellipse(0, 62, 40, 16, 0, 0, Math.PI * 2); ctx.fill();
+    // বোতাম — পোশাকের-গঠন স্পষ্ট হয়
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.beginPath(); ctx.arc(0, 0, 3.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 14, 3.2, 0, Math.PI * 2); ctx.fill();
     if(spec.scarf){
       ctx.fillStyle = spec.scarf;
       ctx.beginPath(); ctx.ellipse(0, -14, 22, 10, 0, 0, Math.PI * 2); ctx.fill();
@@ -5794,6 +5798,18 @@ function drawBody(spec, a){
   ctx.save();
   ctx.fillStyle = spec.fur;
   ctx.beginPath(); ctx.ellipse(0, 16, 42, 50, 0, 0, Math.PI * 2); ctx.fill();
+  // লোমের-আঁচড় — পিঠ-বরাবর ছোট ছোট আঁশ (পশমি-গঠন)
+  ctx.globalAlpha = 0.30;
+  ctx.strokeStyle = spec.furD || "#5a4a32";
+  ctx.lineWidth = 2.4;
+  ctx.lineCap = "round";
+  for(let i = 0; i < 9; i++){
+    const x0 = -38 + i * 9.5;
+    ctx.beginPath();
+    ctx.moveTo(x0, -26 + Math.abs(i - 4) * 2);
+    ctx.lineTo(x0 - 3, -36 + Math.abs(i - 4) * 2.4);
+    ctx.stroke();
+  }
   ctx.globalAlpha = 0.32;
   ctx.fillStyle = spec.muzzle || "#fff";
   ctx.beginPath(); ctx.ellipse(0, 34, 16, 18, 0, 0, Math.PI * 2); ctx.fill();
@@ -6204,6 +6220,31 @@ function drawHair(spec){
   ctx.closePath();
   ctx.fill();
 
+  // চুলের-স্ট্র্যান্ড — হালকা ও গাঢ় রেখা এক-দিকে আঁচড় (আসল-চুলের-গঠন)
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "rgba(255,255,255,0.14)";
+  ctx.lineWidth = 3;
+  for(let i = 0; i < 5; i++){
+    const x0 = -38 + i * 19;
+    ctx.beginPath();
+    ctx.moveTo(x0, -44 - (i % 2) * 4);
+    ctx.quadraticCurveTo(x0 + 6, -34, x0 + 2, -20 - (i % 2) * 3);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(0,0,0,0.18)";
+  for(let i = 0; i < 4; i++){
+    const x0 = -30 + i * 20;
+    ctx.beginPath();
+    ctx.moveTo(x0, -46);
+    ctx.quadraticCurveTo(x0 - 5, -36, x0 - 2, -24);
+    ctx.stroke();
+  }
+  // চুলের-উজ্জ্বলতা — উপরে চিকন ব্যান্ড
+  ctx.strokeStyle = "rgba(255,255,255,0.18)";
+  ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.arc(0, -4, 46, Math.PI * 1.25, Math.PI * 1.55);
+  ctx.stroke();
+
   if(spec.bun){
     ctx.beginPath(); ctx.arc(0, -66, 20, 0, Math.PI * 2); ctx.fill();
   }
@@ -6221,6 +6262,18 @@ function drawLongHair(spec, lt, a){
   ctx.beginPath(); ctx.ellipse(0, -12, 64, 52, 0, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.ellipse(-58, hy, 16, 46, 0.1 + sw, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.ellipse(58, hy, 16, 46, -0.1 + sw, 0, Math.PI * 2); ctx.fill();
+  // লম্বা-চুলের-স্ট্র্যান্ড — দুই-পাশে নরম রেখা (হাওয়ায়-সাথে-চলে)
+  ctx.strokeStyle = "rgba(255,255,255,0.12)";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  [-1, 1].forEach(side => {
+    for(let i = 0; i < 3; i++){
+      ctx.beginPath();
+      ctx.moveTo(side * (50 + i * 4), hy - 26);
+      ctx.quadraticCurveTo(side * (58 + i * 4), hy, side * (54 + i * 4), hy + 32);
+      ctx.stroke();
+    }
+  });
   ctx.restore();
 }
 
