@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MithuAnimator — অ্যানিমেশন স্টুডিও</title>
+<style>
+  :root{
+    --bg:#0a0c12; --card:rgba(255,255,255,.045); --card2:rgba(255,255,255,.075);
+    --line:rgba(255,255,255,.09); --txt:#e9ecf5; --dim:#8b93a8;
+    --acc:#7c5cff; --acc2:#22d3ee; --ok:#34d399; --bad:#fb7185;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;color:var(--txt);min-height:100vh;
+    font-family:"Hind Siliguri","Noto Sans Bengali",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:
+      radial-gradient(1000px 700px at 10% -10%, rgba(124,92,255,.26), transparent 60%),
+      radial-gradient(900px 600px at 95% 0%, rgba(34,211,238,.14), transparent 55%),
+      var(--bg);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1320px;margin:0 auto;padding:22px 18px 60px}
+
+  header{display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin-bottom:18px}
+  .logo{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:24px;
+    background:linear-gradient(145deg,var(--acc),var(--acc2));box-shadow:0 10px 28px -10px rgba(124,92,255,.9)}
+  h1{font-size:22px;margin:0}
+  .sub{color:var(--dim);font-size:13px;margin-top:2px}
+  .badges{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+  .badge{font-size:12px;padding:6px 12px;border-radius:999px;background:rgba(52,211,153,.12);
+    color:var(--ok);border:1px solid rgba(52,211,153,.28)}
+  .badge.blue{background:rgba(34,211,238,.1);color:var(--acc2);border-color:rgba(34,211,238,.28)}
+
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:18px;align-items:start}
+  @media (max-width:1000px){.grid{grid-template-columns:1fr}}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;
+    backdrop-filter:blur(14px);box-shadow:0 20px 50px -34px #000}
+  .card+.card{margin-top:14px}
+  .card h2{font-size:13px;margin:0 0 12px;font-weight:600;letter-spacing:.4px;color:#c9d0e4;
+    display:flex;align-items:center;gap:8px;text-transform:uppercase}
+  .card h2 .n{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;
+    background:rgba(124,92,255,.22);color:#c3b6ff}
+
+  /* ---------------- stage ---------------- */
+  .stage-wrap{display:flex;justify-content:center;align-items:center;background:
+    radial-gradient(circle at 50% 40%,rgba(255,255,255,.05),transparent 60%),#06070b;
+    border-radius:16px;padding:14px;border:1px solid var(--line);min-height:200px}
+  #stage{max-width:100%;max-height:min(56vh,560px);width:auto;height:auto;border-radius:10px;
+    box-shadow:0 18px 50px -18px #000;cursor:grab;touch-action:none;background:#000;display:block}
+  #stage:active{cursor:grabbing}
+
+  .playbar{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+  .play-btn{width:42px;height:42px;border-radius:50%;border:0;cursor:pointer;font-size:16px;color:#fff;
+    background:linear-gradient(145deg,var(--acc),#5b3df5);box-shadow:0 8px 22px -10px var(--acc);flex:none}
+  .play-btn:hover{filter:brightness(1.12)}
+  .time{font-size:12.5px;color:var(--dim);font-variant-numeric:tabular-nums;min-width:92px}
+  .time b{color:var(--acc2)}
+  .track{position:relative;flex:1;height:26px;min-width:140px;cursor:pointer;display:flex;align-items:center}
+  .track .rail{position:absolute;left:0;right:0;height:6px;border-radius:99px;background:rgba(255,255,255,.1)}
+  .track .fill{position:absolute;left:0;height:6px;border-radius:99px;width:0;
+    background:linear-gradient(90deg,var(--acc),var(--acc2))}
+  .track .dot{position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;
+    transform:translateX(-50%);box-shadow:0 0 0 2px rgba(124,92,255,.55);pointer-events:none}
+  .track .head{position:absolute;width:3px;height:18px;border-radius:2px;background:#fff;
+    transform:translateX(-50%);pointer-events:none;box-shadow:0 0 8px rgba(255,255,255,.6)}
+
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0}
+  .row label{font-size:12.5px;color:#c6cde2}
+  .row .val{font-size:12px;color:var(--acc2);font-variant-numeric:tabular-nums}
+
+  select,input[type=text],input[type=number]{
+    width:100%;padding:9px 11px;border-radius:10px;background:rgba(255,255,255,.045);
+    border:1px solid var(--line);color:var(--txt);font-size:13px;font-family:inherit;outline:none}
+  select:focus,input:focus{border-color:rgba(124,92,255,.7);box-shadow:0 0 0 3px rgba(124,92,255,.15)}
+  select option{background:#161a26}
+  input[type=color]{width:38px;height:30px;padding:2px;border-radius:8px;border:1px solid var(--line);
+    background:rgba(255,255,255,.05);cursor:pointer}
+  input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:99px;outline:none;
+    background:linear-gradient(90deg,var(--acc),var(--acc2));margin:5px 0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;
+    background:#fff;border:3px solid var(--acc);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+
+  .btn{width:100%;padding:11px;border-radius:11px;border:1px solid var(--line);background:var(--card2);
+    color:var(--txt);font-family:inherit;font-size:13px;cursor:pointer;transition:.16s}
+  .btn:hover{background:rgba(255,255,255,.12);transform:translateY(-1px)}
+  .btn.acc{background:linear-gradient(135deg,var(--acc),#5b3df5 50%,var(--acc2));border:0;font-weight:700;
+    color:#fff;box-shadow:0 14px 34px -18px var(--acc)}
+  .btn.ghost{background:transparent}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card2);
+    color:#d3d9ea;font-size:12.5px;font-family:inherit;cursor:pointer;transition:.16s;white-space:nowrap}
+  .chip:hover{border-color:rgba(124,92,255,.6);background:rgba(124,92,255,.16);transform:translateY(-1px)}
+  .chip.on{background:linear-gradient(145deg,var(--acc),#5b3df5);border-color:transparent;color:#fff}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .add{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:11px;
+    border:1px solid var(--line);background:var(--card2);color:#cfd6e8;font-size:11.5px;
+    font-family:inherit;cursor:pointer;transition:.16s}
+  .add:hover{border-color:rgba(124,92,255,.55);background:rgba(124,92,255,.14);transform:translateY(-1px)}
+  .add i{font-size:18px;font-style:normal;line-height:1}
+
+  /* layers */
+  #layers{display:flex;flex-direction:column;gap:6px;max-height:210px;overflow:auto}
+  .layer{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;
+    border:1px solid transparent;background:rgba(255,255,255,.035);cursor:pointer;font-size:12.5px}
+  .layer:hover{background:rgba(255,255,255,.08)}
+  .layer.on{border-color:rgba(124,92,255,.75);background:rgba(124,92,255,.16)}
+  .layer .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .layer .mini{width:15px;height:15px;border-radius:5px;flex:none}
+  .layer .act{border:0;background:transparent;color:var(--dim);cursor:pointer;font-size:13px;padding:0 2px}
+  .layer .act:hover{color:#fff}
+  .empty{color:var(--dim);font-size:12.5px;text-align:center;padding:12px}
+
+  .hint{color:var(--dim);font-size:12px;line-height:1.65}
+
+  #exportStatus{font-size:12.5px;margin-top:10px;line-height:1.7;display:none}
+  #exportStatus.show{display:block}
+  #exportStatus.err{color:var(--bad)}
+  #exportStatus.ok{color:var(--ok)}
+  .bar{height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px}
+  .bar i{display:block;height:100%;width:35%;border-radius:99px;
+    background:linear-gradient(90deg,var(--acc),var(--acc2));animation:slide 1.3s ease-in-out infinite}
+  @keyframes slide{0%{margin-left:-40%}100%{margin-left:105%}}
+
+  #result{display:none}
+  #result.show{display:block}
+  #result video{width:auto;max-width:100%;max-height:380px;margin:0 auto;display:block;border-radius:11px;
+    background:#000;border:1px solid var(--line)}
+  .meta{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 0}
+  .mchip{font-size:11.5px;padding:4px 10px;border-radius:999px;background:var(--card2);
+    border:1px solid var(--line);color:#c8cfe4}
+  .dl{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;padding:11px;
+    border-radius:11px;text-decoration:none;background:rgba(52,211,153,.14);
+    border:1px solid rgba(52,211,153,.4);color:var(--ok);font-weight:600;font-size:13px;transition:.16s}
+  .dl:hover{background:rgba(52,211,153,.24)}
+
+  .emoji-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .emoji-row button{font-size:18px;line-height:1;width:32px;height:32px;border-radius:8px;cursor:pointer;
+    border:1px solid var(--line);background:rgba(255,255,255,.04)}
+  .emoji-row button:hover{background:rgba(124,92,255,.22)}
+
+  footer{margin-top:26px;text-align:center;color:var(--dim);font-size:12px;line-height:1.9}
+  footer code{background:rgba(255,255,255,.07);padding:2px 6px;border-radius:5px;font-size:11.5px}
+  .hide{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">🎬</div>
+    <div>
+      <h1>MithuAnimator</h1>
+      <div class="sub">ব্রাউজারেই অ্যানিমেশন বানাও → MP4 নামাও। কিছুই ইন্টারনেটে যায় না।</div>
+    </div>
+    <div class="badges">
+      <span class="badge">✅ কপিরাইট-ফ্রি</span>
+      <span class="badge blue">🎞️ MP4 এক্সপোর্ট</span>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- ================= LEFT : STAGE ================= -->
+    <div>
+      <div class="card" style="padding:14px">
+        <div class="stage-wrap">
+          <canvas id="stage" width="1080" height="1920"></canvas>
+        </div>
+
+        <div class="playbar">
+          <button class="play-btn" id="play" title="চালাও (Space)">▶</button>
+          <div class="time" id="time"><b>0.0</b> / 4.0s</div>
+          <div class="track" id="track">
+            <div class="rail"></div>
+            <div class="fill" id="fill"></div>
+            <div id="dots"></div>
+            <div class="head" id="head"></div>
+          </div>
+        </div>
+
+        <div class="playbar" style="margin-top:6px">
+          <div style="flex:1;min-width:150px">
+            <div class="row" style="margin:0 0 2px">
+              <label>দৈর্ঘ্য</label><span class="val"><span id="durVal">4.0</span>s</span>
+            </div>
+            <input id="dur" type="range" min="1" max="15" step="0.5" value="4">
+          </div>
+          <div style="flex:1;min-width:130px">
+            <div class="row" style="margin:0 0 2px"><label>সাইজ</label></div>
+            <select id="fmt">
+              <option value="1080x1920">📱 Vertical 9:16</option>
+              <option value="1920x1080">🖥️ Horizontal 16:9</option>
+              <option value="1080x1080">⬛ Square 1:1</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="n">🎞️</span> টাইমলাইন <span style="margin-left:auto;font-size:11px;color:var(--dim);text-transform:none">
+          সাদা ডট = কীফ্রেম</span></h2>
+        <div class="chips" style="margin-bottom:10px">
+          <button class="chip" id="addKey">＋ কীফ্রেম</button>
+          <button class="chip" id="delKey">－ কীফ্রেম</button>
+          <button class="chip" id="fixLoop">🔁 লুপ ঠিক করো</button>
+          <button class="chip" id="dupItem">⧉ কপি</button>
+          <button class="chip" id="delItem">🗑️ সরাও</button>
+        </div>
+
+        <div class="row" style="margin:4px 0 6px">
+          <label>মোশন (এই কীফ্রেম → পরের কীফ্রেম)</label>
+        </div>
+        <select id="ease">
+          <option value="smooth">মসৃণ — smooth</option>
+          <option value="linear">সরল — linear</option>
+          <option value="in">ধীরে শুরু — ease-in</option>
+          <option value="out">ধীরে শেষ — ease-out</option>
+          <option value="bounce">লাফ — bounce</option>
+          <option value="elastic">ইলাস্টিক — elastic</option>
+        </select>
+
+        <div class="row" style="margin-top:12px">
+          <label>ব্যাকগ্রাউন্ড</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="color" id="bg1" value="#1b1035">
+            <input type="color" id="bg2" value="#080a10">
+          </div>
+        </div>
+        <div class="hint" id="tlHint">
+          👆 ক্যানভাসে ক্লিক করে এলিমেন্ট বেছে নাও, তারপর টেনে সরাও।<br>
+          নীল রেখাটা সময় — ওই সময়ে প্রপার্টি বদলালে নতুন কীফ্রেম তৈরি হয়।
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= RIGHT : PANELS ================= -->
+    <div>
+
+      <div class="card">
+        <h2><span class="n">✨</span> টেমপ্লেট</h2>
+        <div class="chips" id="templates"></div>
+        <div class="hint" style="margin-top:10px">টেমপ্লেটে ক্লিক করলেই রেডি অ্যানিমেশন — তারপর Export চাপো।</div>
+      </div>
+
+      <div class="card">
+        <h2><span class="n">➕</span> এলিমেন্ট যোগ করো</h2>
+        <div class="grid3">
+          <button class="add" data-add="circle"><i>🔵</i>বৃত্ত</button>
+          <button class="add" data-add="rect"><i>⬛</i>চারকোনা</button>
+          <button class="add" data-add="star"><i>⭐</i>তারা</button>
+          <button class="add" data-add="heart"><i>🧡</i>হার্ট</button>
+          <button class="add" data-add="cloud"><i>☁️</i>মেঘ</button>
+          <button class="add" data-add="triangle"><i>🔺</i>ত্রিভুজ</button>
+          <button class="add" data-add="ring"><i>⭕</i>রিং</button>
+          <button class="add" data-add="emoji"><i>😀</i>ইমোজি</button>
+          <button class="add" data-add="text"><i>🔤</i>লেখা</button>
+          <button class="add" data-add="image"><i>🖼️</i>ছবি / স্প্রাইট</button>
+          <button class="add" data-add="robot3d"><i>🤖</i>3D স্প্রাইট</button>
+          <button class="add" data-add="particles"><i>✨</i>পার্টিকেল</button>
+        </div>
+        <input id="imgFile" type="file" accept="image/*" multiple hidden>
+      </div>
+
+      <div class="card">
+        <h2><span class="n">🧱</span> লেয়ার</h2>
+        <div id="layers"></div>
+        <div class="empty" id="layersEmpty">এখনো কিছু নেই — উপরে থেকে যোগ করো।</div>
+      </div>
+
+      <div class="card hide" id="propsCard">
+        <h2><span class="n">🎛️</span> প্রপার্টি <span id="propName" style="margin-left:auto;font-size:11px;color:var(--acc2);text-transform:none"></span></h2>
+
+        <div class="row" style="margin-top:0"><label>সাইজ</label><span class="val"><span id="sizeVal">25</span>%</span></div>
+        <input id="pSize" type="range" min="2" max="130" step="1" value="25">
+
+        <div class="row"><label>ঘোরানো</label><span class="val"><span id="rotVal">0</span>°</span></div>
+        <input id="pRot" type="range" min="-360" max="360" step="1" value="0">
+
+        <div class="row"><label>অস্বচ্ছতা</label><span class="val"><span id="opVal">100</span>%</span></div>
+        <input id="pOp" type="range" min="0" max="100" step="1" value="100">
+
+        <div class="row"><label>গ্লো</label><span class="val"><span id="glowVal">0</span>%</span></div>
+        <input id="pGlow" type="range" min="0" max="100" step="1" value="0">
+
+        <div class="row" id="colorRow"><label>রঙ</label><input id="pColor" type="color" value="#7c5cff"></div>
+
+        <div id="partRow" class="hide">
+          <div class="row"><label>পার্টিকেল ধরন</label></div>
+          <select id="pPart">
+            <option value="confetti">🎉 কনফেত্তি</option>
+            <option value="sparkle">✨ স্পার্কল</option>
+            <option value="rain">🌧️ বৃষ্টি</option>
+            <option value="bubble">🫧 বুদবুদ</option>
+            <option value="firefly">🌟 জোনাকি</option>
+          </select>
+          <div class="row" style="margin-top:8px"><label>দ্বিতীয় রঙ</label><input id="pColor2" type="color" value="#22d3ee"></div>
+          <div class="hint">সাইজ স্লাইডার = কতগুলো পার্টিকেল (৫–২০০)।</div>
+        </div>
+
+        <div id="textRow" class="hide">
+          <div class="row"><label>লেখা</label></div>
+          <input id="pText" type="text" maxlength="40" placeholder="তোমার লেখা">
+        </div>
+
+        <div id="emojiRow" class="hide">
+          <div class="row"><label>ইমোজি</label></div>
+          <input id="pEmoji" type="text" maxlength="4" placeholder="যেকোনো ইমোজি টাইপ করো">
+          <div class="emoji-row" id="emojiPick"></div>
+        </div>
+
+        <div id="spriteRow" class="hide">
+          <div class="row"><label>ফ্রেম/সেকেন্ড</label><span class="val"><span id="fpsVal">8</span></span></div>
+          <input id="pFps" type="range" min="1" max="24" step="1" value="8">
+          <div class="hint">একসাথে একাধিক ছবি ফেললে ওগুলো ফ্রেম-সিকোয়েন্স হয়ে চলবে — CC0 স্প্রাইট প্যাকের (Kenney/LPC/OpenGameArt) ফ্রেমগুলো এইভাবেই নাড়ে।</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="n">📤</span> এক্সপোর্ট</h2>
+
+        <div class="row" style="margin-top:0"><label>মিউজিক</label></div>
+        <select id="music">
+          <option value="">🔇 কোনো মিউজিক না</option>
+          <option value="calm">🌙 Calm — শান্ত</option>
+          <option value="bright">☀️ Bright — উজ্জ্বল</option>
+          <option value="playful">🎪 Playful — মজার</option>
+        </select>
+
+        <div class="row" style="margin-top:12px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="loop" style="accent-color:#7c5cff;width:15px;height:15px">
+            🔁 সিমলেস লুপ বানাও
+          </label>
+        </div>
+
+        <div id="repWrap" class="hide">
+          <div class="row" style="margin-bottom:2px"><label>লুপ কতবার</label><span class="val"><span id="repVal">3</span>x</span></div>
+          <input id="repeat" type="range" min="1" max="10" step="1" value="3">
+        </div>
+
+        <button class="btn acc" id="exportBtn" style="margin-top:14px">📤 ভিডিও বানাও (Export)</button>
+
+        <div id="exportStatus"></div>
+
+        <div id="result" style="margin-top:14px">
+          <video id="player" controls playsinline loop></video>
+          <div class="meta" id="meta"></div>
+          <a class="dl" id="dl" href="#">⬇️ MP4 ডাউনলোড করো</a>
+        </div>
+
+        <div class="hint" style="margin-top:10px">
+          ⏱️ এক্সপোর্টে সময় লাগে অ্যানিমেশনের দৈর্ঘ্যের সমান (রিয়েল-টাইমে রেকর্ড হয়)।
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    সব কিছু লোকালি তৈরি · কোনো API নেই, সাবস্ক্রিপশন নেই, ওয়াটারমার্ক নেই<br>
+    বন্ধ করতে টার্মিনালে <code>Ctrl + C</code>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = s => document.querySelector(s);
+  const stage = $("#stage");
+  const ctx = stage.getContext("2d");
+  ctx.imageSmoothingQuality = "high";
+
+  /* ================= STATE ================= */
+  const S = {
+    w: 1080, h: 1920,
+    bg: { type: "grad", c1: "#1b1035", c2: "#080a10" },
+    duration: 4,
+    items: [],
+    sel: null,
+    t: 0,
+    playing: false,
+    raf: 0
+  };
+  let uid = 0;
+  const imgCache = {};
+
+  const EMOJIS = ["⭐","🐱","🐶","🌟","☀️","🌙","☁️","🎈","🧡","🌸","🍎","🎵","😀","🦋","🐟","🔥","💧","🌱","🎁","👑"];
+
+  /* ================= HELPERS ================= */
+  const r3 = v => Math.round(v * 1000) / 1000;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  function newItem(kind, opts){
+    return Object.assign({
+      id: "i" + (++uid),
+      kind: kind,
+      shape: kind === "shape" ? "circle" : null,
+      particles: "confetti",
+      emoji: "⭐",
+      text: "Hello",
+      src: null,
+      color: "#7c5cff",
+      color2: "#22d3ee",
+      glow: 0,
+      x: 0.5, y: 0.5, size: 0.25, rot: 0, op: 1,
+      keys: []
+    }, opts || {});
+  }
+
+  function selected(){
+    return S.items.find(i => i.id === S.sel) || null;
+  }
+
+  /* ================= INTERPOLATION ================= */
+  const EASINGS = {
+    smooth: u => u * u * (3 - 2 * u),
+    linear: u => u,
+    in:     u => u * u * u,
+    out:    u => 1 - Math.pow(1 - u, 3),
+    bounce: u => {
+      const n1 = 7.5625, d1 = 2.75;
+      if(u < 1 / d1) return n1 * u * u;
+      if(u < 2 / d1) return n1 * (u -= 1.5 / d1) * u + 0.75;
+      if(u < 2.5 / d1) return n1 * (u -= 2.25 / d1) * u + 0.9375;
+      return n1 * (u -= 2.625 / d1) * u + 0.984375;
+    },
+    elastic: u => {
+      if(u === 0 || u === 1) return u;
+      const c4 = (2 * Math.PI) / 3;
+      return Math.pow(2, -10 * u) * Math.sin((u * 10 - 0.75) * c4) + 1;
+    }
+  };
+
+  function propsAt(it, t){
+    const k = it.keys;
+    if(!k || !k.length){
+      return { x: it.x, y: it.y, size: it.size, rot: it.rot, op: it.op };
+    }
+    if(t <= k[0].t) return k[0];
+    if(t >= k[k.length - 1].t) return k[k.length - 1];
+    for(let i = 0; i < k.length - 1; i++){
+      const a = k[i], b = k[i + 1];
+      if(t >= a.t && t <= b.t){
+        let u = (t - a.t) / ((b.t - a.t) || 1);
+        u = clamp(u, 0, 1);
+        const fn = EASINGS[a.e] || EASINGS.smooth;
+        u = fn(u);
+        return {
+          x: a.x + (b.x - a.x) * u,
+          y: a.y + (b.y - a.y) * u,
+          size: a.size + (b.size - a.size) * u,
+          rot: a.rot + (b.rot - a.rot) * u,
+          op: a.op + (b.op - a.op) * u
+        };
+      }
+    }
+    return k[k.length - 1];
+  }
+
+  function setKey(it, t, patch){
+    const cur = propsAt(it, t);
+    const p = { t: r3(t), x: cur.x, y: cur.y, size: cur.size, rot: cur.rot, op: cur.op, e: "smooth" };
+    Object.assign(p, patch || {});
+
+    if(!it.keys.length){
+      it.keys.push({ t: 0, x: it.x, y: it.y, size: it.size, rot: it.rot, op: it.op, e: "smooth" });
+      if(Math.abs(t) < 0.02){
+        it.keys[0] = p;
+        return;
+      }
+    }
+    const ex = it.keys.find(k => Math.abs(k.t - t) < 0.03);
+    if(ex){ const keep = ex.e; Object.assign(ex, p); if(!patch || !("e" in patch)) ex.e = keep || "smooth"; }
+    else { it.keys.push(p); it.keys.sort((a, b) => a.t - b.t); }
+  }
+
+  /* ================= DRAWING ================= */
+  function roundRect(x, y, w, h, r){
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function starPath(r, ir, points){
+    for(let i = 0; i < points * 2; i++){
+      const rad = i % 2 ? ir : r;
+      const a = (Math.PI / points) * i - Math.PI / 2;
+      const x = Math.cos(a) * rad, y = Math.sin(a) * rad;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.closePath();
+  }
+
+  function heartPath(sz){
+    const s = sz / 2;
+    ctx.moveTo(0, s * 0.78);
+    ctx.bezierCurveTo(-s * 1.65, -s * 0.15, -s * 0.72, -s * 1.12, 0, -s * 0.32);
+    ctx.bezierCurveTo(s * 0.72, -s * 1.12, s * 1.65, -s * 0.15, 0, s * 0.78);
+    ctx.closePath();
+  }
+
+  function cloudPath(sz){
+    const r = sz * 0.24;
+    ctx.arc(-r * 1.15, r * 0.25, r * 0.85, 0, Math.PI * 2);
+    ctx.arc(0, -r * 0.35, r * 1.1, 0, Math.PI * 2);
+    ctx.arc(r * 1.15, r * 0.25, r * 0.85, 0, Math.PI * 2);
+    ctx.rect(-r * 1.9, r * 0.1, r * 3.8, r * 1.0);
+  }
+
+  function drawShape(shape, sz, color){
+    const r = sz / 2;
+    ctx.beginPath();
+    if(shape === "ring"){
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.lineWidth = Math.max(2, sz * 0.12);
+      ctx.strokeStyle = color;
+      ctx.stroke();
+      return;
+    }
+    if(shape === "circle") ctx.arc(0, 0, r, 0, Math.PI * 2);
+    else if(shape === "rect") roundRect(-r, -r, sz, sz, sz * 0.16);
+    else if(shape === "triangle"){
+      ctx.moveTo(0, -r); ctx.lineTo(r, r * 0.82); ctx.lineTo(-r, r * 0.82); ctx.closePath();
+    }
+    else if(shape === "star") starPath(r, r * 0.45, 5);
+    else if(shape === "heart") heartPath(sz);
+    else if(shape === "cloud") cloudPath(sz);
+    else ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  /* ---------- পার্টিকেল ---------- */
+  function rnd(i, s){
+    const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  function drawParticles(it, p, w, h, t){
+    const mode = it.particles || "confetti";
+    const m = Math.min(w, h);
+    const dur = Math.max(0.1, S.duration);
+    const n = clamp(Math.round(p.size * 130), 5, 220);
+    const pal = [it.color, it.color2, "#ffd166", "#ffffff"];
+
+    ctx.save();
+    for(let i = 0; i < n; i++){
+      const r1 = rnd(i, 1), r2 = rnd(i, 2), r3v = rnd(i, 3), r4 = rnd(i, 4);
+      let x, y, s, alpha = 1, rot = 0;
+
+      if(mode === "confetti"){
+        const prog = ((r1 + (t / dur) * (0.4 + r2 * 0.7)) % 1);
+        y = prog * h * 1.12 - h * 0.06;
+        x = r3v * w + Math.sin(t * 1.6 + i) * w * 0.03;
+        s = m * 0.014 + r4 * m * 0.018;
+        rot = t * 2.6 + i;
+      } else if(mode === "rain"){
+        const prog = ((r1 + (t / dur) * (0.9 + r2 * 0.7)) % 1);
+        y = prog * h * 1.12 - h * 0.06;
+        x = r3v * w;
+        s = m * 0.006;
+        alpha = 0.3 + r4 * 0.45;
+      } else if(mode === "sparkle"){
+        x = r1 * w; y = r2 * h;
+        const pulse = 0.5 + 0.5 * Math.sin(t * 2.2 * Math.PI + i * 1.7);
+        s = m * (0.006 + r4 * 0.015) * (0.45 + pulse);
+        alpha = 0.2 + 0.8 * pulse;
+      } else if(mode === "bubble"){
+        const prog = ((r1 + (t / dur) * (0.45 + r2 * 0.5)) % 1);
+        y = h * 1.05 - prog * h * 1.18;
+        x = r3v * w + Math.sin(t * 1.2 + i) * w * 0.02;
+        s = m * 0.018 + r4 * m * 0.045;
+        alpha = 0.16 + r4 * 0.28;
+      } else { // firefly — জোনাকি
+        x = (r1 + Math.sin(t * 0.6 + i * 2.1) * 0.055) * w;
+        y = (r2 + Math.cos(t * 0.5 + i * 1.3) * 0.055) * h;
+        const pulse = 0.5 + 0.5 * Math.sin(t * 2.4 + i * 2.7);
+        s = m * (0.004 + r4 * 0.007) * (0.6 + pulse);
+        alpha = 0.15 + 0.85 * pulse;
+      }
+
+      ctx.globalAlpha = clamp(alpha * p.op, 0, 1);
+      ctx.fillStyle = pal[Math.floor(r4 * pal.length)] || it.color;
+
+      if(mode === "confetti"){
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rot);
+        ctx.fillRect(-s / 2, -s * 0.34, s, s * 0.68);
+        ctx.restore();
+      } else if(mode === "rain"){
+        ctx.strokeStyle = it.color2;
+        ctx.lineWidth = Math.max(1, m * 0.0022);
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - m * 0.004, y + m * 0.055);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(0.5, s), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  const TEXT_FONT = '"Hind Siliguri","Noto Sans Bengali",system-ui,sans-serif';
+
+  function textFontSize(it, sz, w){
+    let fs = Math.max(8, sz * 0.5);
+    const txt = it.text || "";
+    ctx.font = "700 " + fs + "px " + TEXT_FONT;
+    const tw = ctx.measureText(txt).width;
+    const maxW = w * 0.9;
+    if(tw > maxW && tw > 0) fs = Math.max(8, fs * (maxW / tw));
+    return fs;
+  }
+
+  function drawItem(it, p, w, h, t){
+    if(it.kind === "particles") return drawParticles(it, p, w, h, t);
+
+    const m = Math.min(w, h);
+    const sz = Math.max(1, p.size * m);
+    ctx.save();
+    ctx.translate(p.x * w, p.y * h);
+    ctx.rotate((p.rot * Math.PI) / 180);
+    ctx.globalAlpha = clamp(p.op, 0, 1);
+
+    if(it.glow > 0){
+      ctx.shadowColor = it.color;
+      ctx.shadowBlur = sz * 0.45 * it.glow;
+    }
+
+    if(it.kind === "shape"){
+      ctx.fillStyle = it.color;
+      drawShape(it.shape, sz, it.color);
+    } else if(it.kind === "emoji"){
+      ctx.font = sz + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "#fff";
+      ctx.fillText(it.emoji || "⭐", 0, 0);
+    } else if(it.kind === "text"){
+      const fs = textFontSize(it, sz, w);
+      ctx.font = "700 " + fs + "px " + TEXT_FONT;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      if(it.glow > 0) ctx.shadowColor = it.color;
+      ctx.fillStyle = it.color;
+      ctx.fillText(it.text || "", 0, 0);
+    } else if(it.kind === "image"){
+      const img = imgCache[it.src];
+      if(img && img.complete && img.naturalWidth){
+        const ar = img.naturalWidth / img.naturalHeight;
+        let dw = sz, dh = sz;
+        if(ar > 1) dh = sz / ar; else dw = sz * ar;
+        ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+      } else {
+        ctx.fillStyle = "rgba(255,255,255,.12)";
+        ctx.beginPath(); ctx.arc(0, 0, sz / 2, 0, Math.PI * 2); ctx.fill();
+      }
+    } else if(it.kind === "sprite"){
+      // 🚶 2D স্প্রাইট — ফ্রেমগুলো সময় ধরে ঘুরে চলে; ফ্রেম-নম্বর টাইম থেকে
+      // বের করা হয় তাই এক্সপোর্টেও হুবহু একই ফ্রেম পড়ে
+      const frs = it.frames || [];
+      const img = frs.length ? imgCache[frs[Math.floor(t * (it.fps || 8)) % frs.length]] : null;
+      if(img && img.complete && img.naturalWidth){
+        const ar = img.naturalWidth / img.naturalHeight;
+        let dw = sz, dh = sz;
+        if(ar > 1) dh = sz / ar; else dw = sz * ar;
+        ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+      } else {
+        ctx.fillStyle = "rgba(255,255,255,.12)";
+        ctx.beginPath(); ctx.arc(0, 0, sz / 2, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  function outline(it, p, w, h){
+    const m = Math.min(w, h);
+    const sz = Math.max(6, p.size * m);
+    ctx.save();
+    ctx.translate(p.x * w, p.y * h);
+    ctx.rotate((p.rot * Math.PI) / 180);
+    ctx.strokeStyle = "rgba(34,211,238,.95)";
+    ctx.lineWidth = Math.max(2, m * 0.004);
+    ctx.setLineDash([m * 0.012, m * 0.008]);
+    ctx.beginPath();
+
+    if(it.kind === "text"){
+      const fs = textFontSize(it, sz, w);
+      ctx.font = "700 " + fs + "px " + TEXT_FONT;
+      const tw = Math.max(fs, ctx.measureText(it.text || "").width);
+      const th = fs * 1.25;
+      roundRect(-tw / 2 - fs * 0.15, -th / 2, tw + fs * 0.3, th, fs * 0.2);
+    } else if(it.kind === "particles"){
+      ctx.restore();
+      ctx.save();
+      ctx.strokeStyle = "rgba(34,211,238,.45)";
+      ctx.lineWidth = Math.max(2, m * 0.003);
+      ctx.setLineDash([m * 0.014, m * 0.01]);
+      ctx.strokeRect(m * 0.01, m * 0.01, w - m * 0.02, h - m * 0.02);
+      ctx.restore();
+      return;
+    } else if(it.kind === "image" || it.kind === "sprite"){
+      const img = imgCache[it.kind === "sprite" ? (it.frames || [])[0] : it.src];
+      let dw = sz, dh = sz;
+      if(img && img.naturalWidth){
+        const ar = img.naturalWidth / img.naturalHeight;
+        if(ar > 1) dh = sz / ar; else dw = sz * ar;
+      }
+      roundRect(-dw / 2, -dh / 2, dw, dh, sz * 0.06);
+    } else {
+      roundRect(-sz / 2, -sz / 2, sz, sz, sz * 0.08);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function draw(t, editing){
+    const w = S.w, h = S.h;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    if(S.bg.type === "grad"){
+      const g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, S.bg.c1);
+      g.addColorStop(1, S.bg.c2);
+      ctx.fillStyle = g;
+    } else ctx.fillStyle = S.bg.c1;
+    ctx.fillRect(0, 0, w, h);
+
+    for(const it of S.items) drawItem(it, propsAt(it, t), w, h, t);
+
+    if(editing){
+      const it = selected();
+      if(it) outline(it, propsAt(it, t), w, h);
+    }
+  }
+
+  /* ================= PLAYBACK ================= */
+  function setTime(t){
+    S.t = clamp(t, 0, S.duration);
+    draw(S.t, true);
+    updateTimeUI();
+    if(!S.playing) syncPropsUI();
+  }
+
+  function updateTimeUI(){
+    $("#time").innerHTML = "<b>" + S.t.toFixed(1) + "</b> / " + S.duration.toFixed(1) + "s";
+    const pct = (S.t / S.duration) * 100;
+    $("#fill").style.width = pct + "%";
+    $("#head").style.left = pct + "%";
+    $("#dots").style.left = "0";
+    renderDots();
+  }
+
+  let dotsSig = null;
+  function renderDots(){
+    const it = selected();
+    const box = $("#dots");
+    // প্লেব্যাকে updateTimeUI প্রতি ফ্রেমে এসে পড়ে — ডটে বদল না থাকলে
+    // প্রতিবার DOM নোড নতুন করে বানানো শুধু অপচয়
+    const sig = it ? it.id + "|" + S.duration + "|" + it.keys.map(k => k.t).join(",") : "";
+    if(sig === dotsSig) return;
+    dotsSig = sig;
+    box.innerHTML = "";
+    if(!it) return;
+    for(const k of it.keys){
+      const d = document.createElement("div");
+      d.className = "dot";
+      d.style.left = ((k.t / S.duration) * 100) + "%";
+      box.appendChild(d);
+    }
+  }
+
+  function play(){
+    if(S.recording) return;   // রেকর্ডিংয়ের সময় আলাদা প্লে-লুপ ভিডিও নষ্ট করে
+    if(S.playing) return stop();
+    S.playing = true;
+    $("#play").textContent = "⏸";
+    let start = performance.now() - S.t * 1000;
+    function tick(){
+      if(!S.playing) return;
+      let t = (performance.now() - start) / 1000;
+      if(t >= S.duration){ start = performance.now(); t = 0; }
+      S.t = t;
+      draw(t, true);
+      updateTimeUI();
+      S.raf = requestAnimationFrame(tick);
+    }
+    S.raf = requestAnimationFrame(tick);
+  }
+
+  function stop(){
+    S.playing = false;
+    cancelAnimationFrame(S.raf);
+    $("#play").textContent = "▶";
+  }
+
+  /* ================= CANVAS INTERACTION ================= */
+  function ptFromEvent(e){
+    const r = stage.getBoundingClientRect();
+    return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+  }
+
+  function hitTest(p){
+    for(let i = S.items.length - 1; i >= 0; i--){
+      const it = S.items[i];
+      if(it.kind === "particles") continue;
+      const pr = propsAt(it, S.t);
+      const m = Math.min(S.w, S.h);
+      const sz = Math.max(20, pr.size * m) * 0.6;
+      const dx = (p.x - pr.x) * S.w, dy = (p.y - pr.y) * S.h;
+      if(Math.abs(dx) < sz && Math.abs(dy) < sz) return it;
+    }
+    return null;
+  }
+
+  let drag = null;
+
+  stage.addEventListener("pointerdown", e => {
+    if(S.recording) return;   // রেকর্ড হওয়া ভিডিওতে এডিট-আউটলাইন ঢুকে যায়
+    const p = ptFromEvent(e);
+    const hit = hitTest(p);
+    if(hit) selectItem(hit.id);
+    if(hit){
+      stop();
+      const pr = propsAt(hit, S.t);
+      drag = { id: hit.id, dx: pr.x - p.x, dy: pr.y - p.y };
+      stage.setPointerCapture(e.pointerId);
+    } else {
+      selectItem(null);
+    }
+  });
+
+  stage.addEventListener("pointermove", e => {
+    if(!drag) return;
+    const it = S.items.find(i => i.id === drag.id);
+    if(!it) return;
+    const p = ptFromEvent(e);
+    editItem(it, {
+      x: clamp(p.x + drag.dx, -0.25, 1.25),
+      y: clamp(p.y + drag.dy, -0.25, 1.25)
+    });
+  });
+
+  stage.addEventListener("pointerup", () => { drag = null; });
+  stage.addEventListener("pointercancel", () => { drag = null; });
+
+  /* ================= EDITING ================= */
+  function editItem(it, patch, silent){
+    if(!it.keys.length){
+      Object.assign(it, patch);
+    } else {
+      setKey(it, S.t, patch);
+    }
+    if(!silent){
+      draw(S.t, true);
+      if(it.id === S.sel) syncPropsUI();
+      updateTimeUI();
+    }
+  }
+
+  function selectItem(id){
+    S.sel = id;
+    renderLayers();
+    renderDots();
+    syncPropsUI();
+    draw(S.t, true);
+  }
+
+  function syncPropsUI(){
+    const it = selected();
+    const card = $("#propsCard");
+    if(!it){ card.classList.add("hide"); return; }
+    card.classList.remove("hide");
+
+    const p = propsAt(it, S.t);
+    const name = itemName(it);
+    $("#propName").textContent = name;
+    $("#pSize").value = Math.round(p.size * 100);
+    $("#sizeVal").textContent = Math.round(p.size * 100);
+    $("#pRot").value = Math.round(p.rot);
+    $("#rotVal").textContent = Math.round(p.rot);
+    $("#pOp").value = Math.round(p.op * 100);
+    $("#opVal").textContent = Math.round(p.op * 100);
+    $("#pGlow").value = Math.round((it.glow || 0) * 100);
+    $("#glowVal").textContent = Math.round((it.glow || 0) * 100);
+
+    let curE = "smooth";
+    for(const k of it.keys){ if(k.t <= S.t + 0.001) curE = k.e || "smooth"; }
+    $("#ease").value = curE;
+
+    const isPart = it.kind === "particles";
+    $("#partRow").classList.toggle("hide", !isPart);
+    if(isPart){
+      $("#pPart").value = it.particles || "confetti";
+      $("#pColor2").value = it.color2 || "#22d3ee";
+    }
+
+    $("#colorRow").classList.toggle("hide", !(it.kind === "shape" || it.kind === "text" || isPart));
+    $("#pColor").value = it.color || "#7c5cff";
+
+    $("#textRow").classList.toggle("hide", it.kind !== "text");
+    if(it.kind === "text") $("#pText").value = it.text;
+
+    $("#emojiRow").classList.toggle("hide", it.kind !== "emoji");
+    if(it.kind === "emoji") $("#pEmoji").value = it.emoji;
+
+    $("#spriteRow").classList.toggle("hide", it.kind !== "sprite");
+    if(it.kind === "sprite"){
+      $("#pFps").value = it.fps || 8;
+      $("#fpsVal").textContent = it.fps || 8;
+    }
+  }
+
+  function itemName(it){
+    if(it.kind === "shape"){
+      const n = { circle: "বৃত্ত", rect: "চারকোনা", star: "তারা", heart: "হার্ট", cloud: "মেঘ", triangle: "ত্রিভুজ", ring: "রিং" };
+      return n[it.shape] || "শেপ";
+    }
+    if(it.kind === "particles"){
+      const n = { confetti: "কনফেত্তি", sparkle: "স্পার্কল", rain: "বৃষ্টি", bubble: "বুদবুদ", firefly: "জোনাকি" };
+      return "পার্টিকেল: " + (n[it.particles] || "কনফেত্তি");
+    }
+    if(it.kind === "emoji") return "ইমোজি " + (it.emoji || "");
+    if(it.kind === "sprite") return "স্প্রাইট (" + (it.frames || []).length + " ফ্রেম)";
+    if(it.kind === "text") return 'লেখা: "' + (it.text || "").slice(0, 12) + '"';
+    return "ছবি";
+  }
+
+  function iconFor(it){
+    if(it.kind === "shape"){
+      return { circle: "🔵", rect: "⬛", star: "⭐", heart: "🧡", cloud: "☁️", triangle: "🔺", ring: "⭕" }[it.shape] || "⬤";
+    }
+    if(it.kind === "particles") return "✨";
+    if(it.kind === "emoji") return it.emoji || "⭐";
+    if(it.kind === "text") return "🔤";
+    return "🖼️";
+  }
+
+  /* ================= LAYERS ================= */
+  function renderLayers(){
+    const box = $("#layers");
+    box.innerHTML = "";
+    const list = S.items.slice().reverse();
+    for(const it of list){
+      const row = document.createElement("div");
+      row.className = "layer" + (it.id === S.sel ? " on" : "");
+      row.innerHTML = '<span class="mini">' + iconFor(it) + "</span>" +
+                      '<span class="nm">' + itemName(it) + "</span>";
+      row.onclick = () => selectItem(it.id);
+
+      const up = document.createElement("button");
+      up.className = "act"; up.textContent = "↑"; up.title = "সামনে আনো";
+      up.onclick = (e) => { e.stopPropagation(); moveLayer(it, +1); };
+
+      const dn = document.createElement("button");
+      dn.className = "act"; dn.textContent = "↓"; dn.title = "পেছনে পাঠাও";
+      dn.onclick = (e) => { e.stopPropagation(); moveLayer(it, -1); };
+
+      const del = document.createElement("button");
+      del.className = "act"; del.textContent = "✕"; del.title = "সরাও";
+      del.onclick = (e) => { e.stopPropagation(); removeItem(it.id); };
+
+      row.appendChild(up); row.appendChild(dn); row.appendChild(del);
+      box.appendChild(row);
+    }
+    $("#layersEmpty").classList.toggle("hide", S.items.length > 0);
+  }
+
+  function moveLayer(it, dir){
+    const i = S.items.indexOf(it);
+    const j = i + dir;
+    if(j < 0 || j >= S.items.length) return;
+    S.items.splice(i, 1);
+    S.items.splice(j, 0, it);
+    renderLayers();
+    draw(S.t, true);
+  }
+
+  function removeItem(id){
+    S.items = S.items.filter(i => i.id !== id);
+    if(S.sel === id) S.sel = null;
+    renderLayers(); syncPropsUI(); renderDots(); draw(S.t, true);
+  }
+
+  /* ================= ADD ELEMENTS ================= */
+  function addItem(it){
+    S.items.push(it);
+    selectItem(it.id);
+    renderLayers();
+    draw(S.t, true);
+  }
+
+  document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => {
+    const kind = b.dataset.add;
+    if(kind === "image"){ $("#imgFile").click(); return; }
+    if(kind === "robot3d"){
+      // 🤖 বান্ডেল করা 3D-রেন্ডার রোবট — ফ্রেমগুলো 3d/walk-render.html টুল
+      // দিয়ে বানানো (three.js, MIT); নতুন 3D মডেলও একই ব্রিজে আসবে
+      const frames = [];
+      for(let i = 0; i < 12; i++) frames.push("sprites/robot/w" + i + ".png");
+      frames.forEach(src => {
+        const img = new Image();
+        img.onload = () => { draw(S.t, true); };
+        img.src = src;
+        imgCache[src] = img;
+      });
+      addItem(newItem("sprite", { frames: frames, fps: 12, size: 0.55, y: 0.42 }));
+      return;
+    }
+    if(kind === "emoji"){
+      addItem(newItem("emoji", { emoji: "⭐", size: 0.3, y: 0.45 }));
+      return;
+    }
+    if(kind === "text"){
+      addItem(newItem("text", { text: "Hello", size: 0.4, y: 0.45, color: "#ffffff" }));
+      return;
+    }
+    if(kind === "particles"){
+      addItem(newItem("particles", { particles: "confetti", size: 0.35, color: "#ff4d8d", color2: "#ffd166" }));
+      return;
+    }
+    addItem(newItem("shape", { shape: kind, color: "#7c5cff", size: 0.28, y: 0.45 }));
+  });
+
+  $("#imgFile").onchange = (e) => {
+    const files = [...e.target.files];
+    if(!files.length) return;
+    if(files.length === 1){
+      const f = files[0];
+      const fr = new FileReader();
+      fr.onload = () => {
+        const src = fr.result;
+        const img = new Image();
+        img.onload = () => { imgCache[src] = img; draw(S.t, true); };
+        img.src = src;
+        imgCache[src] = img;
+        addItem(newItem("image", { src: src, size: 0.6, y: 0.45 }));
+      };
+      fr.readAsDataURL(f);
+      e.target.value = "";
+      return;
+    }
+    // 🚶 2D স্প্রাইট — একাধিক ছবি = ফ্রেম-সিকোয়েন্স; CC0 প্যাকের
+    // (Kenney/LPC/OpenGameArt) ফ্রেমগুলো ফেললেই সেগুলো সময় ধরে ঘুরবে
+    const frames = [];
+    let done = 0;
+    files.forEach((f, i) => {
+      const fr = new FileReader();
+      fr.onload = () => {
+        const src = fr.result;
+        frames.push({ src: src, order: i });
+        const img = new Image();
+        img.onload = () => {
+          done++;
+          if(done === files.length){
+            frames.sort((a, b) => a.order - b.order);
+            addItem(newItem("sprite", { frames: frames.map(x => x.src), fps: 8, size: 0.6, y: 0.45 }));
+            draw(S.t, true);
+          }
+        };
+        img.src = src;
+        imgCache[src] = img;
+      };
+      fr.readAsDataURL(f);
+    });
+    e.target.value = "";
+  };
+
+  /* ================= PROPERTY CONTROLS ================= */
+  function bindRange(sel, apply){
+    const el = $(sel);
+    el.addEventListener("input", () => {
+      const it = selected(); if(!it) return;
+      apply(it, +el.value);
+      draw(S.t, true);
+    });
+  }
+
+  bindRange("#pSize", (it, v) => { editItem(it, { size: v / 100 }, true); $("#sizeVal").textContent = v; });
+  bindRange("#pRot", (it, v) => { editItem(it, { rot: v }, true); $("#rotVal").textContent = v; });
+  bindRange("#pOp", (it, v) => { editItem(it, { op: v / 100 }, true); $("#opVal").textContent = v; });
+
+  $("#pGlow").addEventListener("input", e => {
+    const it = selected(); if(!it) return;
+    it.glow = +e.target.value / 100;
+    $("#glowVal").textContent = e.target.value;
+    draw(S.t, true);
+  });
+
+  $("#pPart").addEventListener("change", e => {
+    const it = selected(); if(!it || it.kind !== "particles") return;
+    it.particles = e.target.value;
+    draw(S.t, true);
+    renderLayers();
+  });
+
+  $("#pFps").addEventListener("input", e => {
+    const it = selected(); if(!it || it.kind !== "sprite") return;
+    it.fps = +e.target.value;
+    $("#fpsVal").textContent = it.fps;
+    draw(S.t, true);
+  });
+
+  $("#pColor2").addEventListener("input", e => {
+    const it = selected(); if(!it) return;
+    it.color2 = e.target.value;
+    draw(S.t, true);
+  });
+
+  $("#ease").addEventListener("change", e => {
+    const it = selected(); if(!it || !it.keys.length) return;
+    let target = null;
+    for(const k of it.keys){ if(k.t <= S.t + 0.06) target = k; }
+    if(!target) target = it.keys[0];
+    target.e = e.target.value;
+    draw(S.t, true);
+  });
+
+  $("#bg1").addEventListener("input", e => { S.bg.c1 = e.target.value; draw(S.t, true); });
+  $("#bg2").addEventListener("input", e => { S.bg.c2 = e.target.value; draw(S.t, true); });
+
+  $("#pColor").addEventListener("input", e => {
+    const it = selected(); if(!it) return;
+    it.color = e.target.value;
+    draw(S.t, true);
+    renderLayers();
+  });
+
+  $("#pText").addEventListener("input", e => {
+    const it = selected(); if(!it) return;
+    it.text = e.target.value;
+    draw(S.t, true);
+    renderLayers();
+  });
+
+  $("#pEmoji").addEventListener("input", e => {
+    const it = selected(); if(!it) return;
+    it.emoji = e.target.value || "⭐";
+    draw(S.t, true);
+    renderLayers();
+  });
+
+  $("#emojiPick").innerHTML = EMOJIS.map(e => '<button type="button">' + e + "</button>").join("");
+  $("#emojiPick").onclick = (e) => {
+    if(e.target.tagName !== "BUTTON") return;
+    const it = selected(); if(!it) return;
+    it.emoji = e.target.textContent;
+    $("#pEmoji").value = it.emoji;
+    draw(S.t, true);
+    renderLayers();
+  };
+
+  /* ================= TIMELINE CONTROLS ================= */
+  $("#addKey").onclick = () => {
+    const it = selected();
+    if(!it) return flashHint();
+    setKey(it, S.t, {});
+    renderDots();
+    updateTimeUI();
+  };
+
+  $("#delKey").onclick = () => {
+    const it = selected();
+    if(!it) return flashHint();
+    it.keys = it.keys.filter(k => Math.abs(k.t - S.t) > 0.06);
+    renderDots();
+    updateTimeUI();
+    draw(S.t, true);
+  };
+
+  $("#fixLoop").onclick = () => {
+    let n = 0;
+    for(const it of S.items){
+      if(!it.keys.length) continue;
+      const p = propsAt(it, 0);
+      setKey(it, S.duration, { x: p.x, y: p.y, size: p.size, rot: p.rot, op: p.op });
+      n++;
+    }
+    renderDots(); draw(S.t, true);
+    if(!n) flashHint("কোনো কীফ্রেম নেই — আগে কীফ্রেম দাও।");
+  };
+
+  $("#delItem").onclick = () => {
+    if(S.sel) removeItem(S.sel);
+  };
+
+  $("#dupItem").onclick = () => {
+    const it = selected();
+    if(!it) return flashHint();
+    const copy = JSON.parse(JSON.stringify(it));
+    copy.id = "i" + (++uid);
+    // কীফ্রেমড এলিমেন্ট আঁকা হয় কীফ্রেমের পজিশন থেকে — তাই কপিটা
+    // আলাদা দেখাতে প্রতিটা কীফ্রেমেও একই অফসেট দিতে হয়
+    const dx = 0.06, dy = 0.06;
+    copy.x = clamp(it.x + dx, -0.2, 1.2);
+    copy.y = clamp(it.y + dy, -0.2, 1.2);
+    (copy.keys || []).forEach(k => {
+      k.x = clamp(k.x + dx, -0.2, 1.2);
+      k.y = clamp(k.y + dy, -0.2, 1.2);
+    });
+    S.items.push(copy);
+    selectItem(copy.id);
+    renderLayers();
+    draw(S.t, true);
+  };
+
+  function flashHint(msg){
+    const h = $("#tlHint");
+    const old = h.innerHTML;
+    if(msg) h.textContent = msg;
+    h.style.color = "#22d3ee";
+    setTimeout(() => { h.style.color = ""; if(msg) h.innerHTML = old; }, 1600);
+  }
+
+  /* ================= TRACK SEEK ================= */
+  $("#track").addEventListener("pointerdown", e => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const pct = clamp((e.clientX - r.left) / r.width, 0, 1);
+    stop();
+    setTime(pct * S.duration);
+  });
+
+  $("#play").onclick = play;
+
+  /* ================= DURATION / FORMAT ================= */
+  $("#dur").addEventListener("input", e => {
+    S.duration = +e.target.value;
+    $("#durVal").textContent = S.duration.toFixed(1);
+    S.t = Math.min(S.t, S.duration);
+    updateTimeUI(); draw(S.t, true);
+  });
+
+  $("#fmt").onchange = e => {
+    const [w, h] = e.target.value.split("x").map(Number);
+    S.w = w; S.h = h;
+    stage.width = w; stage.height = h;
+    draw(S.t, true);
+  };
+
+  /* ================= KEYBOARD ================= */
+  window.addEventListener("keydown", e => {
+    if(/input|textarea|select/i.test(e.target.tagName)) return;
+    if(e.code === "Space"){ e.preventDefault(); play(); }
+    if(e.key === "Delete" || e.key === "Backspace"){ if(S.sel) removeItem(S.sel); }
+  });
+
+  /* ================= TEMPLATES ================= */
+  const K = (t, x, y, size, rot, op, e) =>
+    ({ t: t, x: x, y: y, size: size, rot: rot || 0, op: op == null ? 1 : op, e: e || "smooth" });
+
+  const TEMPLATES = [
+    {
+      id: "bounce", name: "🏀 বল লাফায়", dur: 2.4,
+      bg: { type: "grad", c1: "#1b1035", c2: "#080a10" },
+      build(){
+        return [
+          newItem("shape", { shape: "circle", color: "#ff6b6b", x: .5, y: .7, size: .22, keys: [
+            K(0, .5, .74, .26, 0),
+            K(0.12, .5, .70, .22, 40),
+            K(1.2, .5, .30, .22, 220),
+            K(2.28, .5, .70, .22, 330),
+            K(2.4, .5, .74, .26, 360)
+          ]})
+        ];
+      }
+    },
+    {
+      id: "sunrise", name: "🌅 সূর্য ওঠে", dur: 6,
+      bg: { type: "grad", c1: "#2a1b4d", c2: "#0a0d18" },
+      build(){
+        return [
+          newItem("shape", { shape: "cloud", color: "#3a3157", x: .2, y: .22, size: .55, op: .9, keys: [
+            K(0, .18, .24, .55), K(6, .85, .2, .55)
+          ]}),
+          newItem("shape", { shape: "circle", color: "#ffd166", x: .5, y: .78, size: .3, keys: [
+            K(0, .5, .86, .28), K(6, .5, .36, .34)
+          ]}),
+          newItem("shape", { shape: "cloud", color: "#4b3f73", x: .78, y: .62, size: .7, keys: [
+            K(0, .9, .68, .7), K(6, .18, .58, .7)
+          ]})
+        ];
+      }
+    },
+    {
+      id: "balloons", name: "🎈 বেলুন", dur: 5,
+      bg: { type: "grad", c1: "#101a33", c2: "#070912" },
+      build(){
+        return [
+          newItem("emoji", { emoji: "🎈", x: .25, y: .9, size: .22, keys: [K(0, .25, 1.05, .22, 0), K(5, .22, -.12, .22, 0)] }),
+          newItem("emoji", { emoji: "🎈", x: .55, y: .95, size: .18, keys: [K(0, .55, 1.1, .18, 0), K(5, .6, -.05, .18, 0)] }),
+          newItem("emoji", { emoji: "🎈", x: .8, y: .88, size: .2, keys: [K(0, .8, 1.02, .2, 0), K(5, .78, -.15, .2, 0)] })
+        ];
+      }
+    },
+    {
+      id: "spin", name: "⭐ ঘুরছে তারা", dur: 3,
+      bg: { type: "grad", c1: "#161233", c2: "#05060c" },
+      build(){
+        return [
+          newItem("shape", { shape: "star", color: "#ffd166", x: .5, y: .45, size: .3, keys: [
+            K(0, .5, .45, .26, 0), K(1.5, .5, .45, .34, 180), K(3, .5, .45, .26, 360)
+          ]})
+        ];
+      }
+    },
+    {
+      id: "heart", name: "🧡 হার্টবিট", dur: 2,
+      bg: { type: "grad", c1: "#2a1020", c2: "#0a0508" },
+      build(){
+        return [
+          newItem("shape", { shape: "heart", color: "#ff4d8d", x: .5, y: .45, size: .3, keys: [
+            K(0, .5, .45, .16), K(0.3, .5, .45, .28), K(0.6, .5, .45, .18),
+            K(0.9, .5, .45, .26), K(1.3, .5, .45, .16), K(2, .5, .45, .16)
+          ]})
+        ];
+      }
+    },
+    {
+      id: "textpop", name: "🔤 লেখা পপ", dur: 3,
+      bg: { type: "grad", c1: "#1a1240", c2: "#07080f" },
+      build(){
+        return [
+          newItem("text", { text: "Hello!", color: "#ffffff", x: .5, y: .45, size: .4, keys: [
+            K(0, .5, .45, .04, 0, 0), K(0.5, .5, .45, .42, 0, 1),
+            K(2.3, .5, .45, .42, 0, 1), K(3, .5, .45, .05, 0, 0)
+          ]})
+        ];
+      }
+    },
+    {
+      id: "confetti", name: "🎉 কনফেত্তি", dur: 4,
+      bg: { type: "grad", c1: "#20103a", c2: "#08060f" },
+      build(){ return [
+        newItem("particles", { particles: "confetti", color: "#ff4d8d", color2: "#ffd166", size: .55 }),
+        newItem("text", { text: "Yay! 🎉", color: "#ffffff", x: .5, y: .45, size: .42, glow: .3, keys: [
+          K(0,   .5, .45, .05, 0, 0, "bounce"),
+          K(0.5, .5, .45, .44, 0, 1),
+          K(3.4, .5, .45, .44, 0, 1, "in"),
+          K(4,   .5, .45, .30, 0, 0)
+        ]})
+      ]; }
+    },
+    {
+      id: "bubbles", name: "🫧 বুদবুদ", dur: 5,
+      bg: { type: "grad", c1: "#0d2b3d", c2: "#050a10" },
+      build(){ return [
+        newItem("particles", { particles: "bubble", color: "#7ee8fa", color2: "#ffffff", size: .5 }),
+        newItem("shape", { shape: "ring", color: "#7ee8fa", x: .5, y: .45, size: .3, glow: .4, keys: [
+          K(0,   .5, .45, .10, 0, 1, "out"),
+          K(2.5, .5, .45, .55, 0, .5, "out"),
+          K(5,   .5, .45, .10, 0, 1)
+        ]})
+      ]; }
+    },
+    {
+      id: "rain", name: "🌧️ বৃষ্টি", dur: 5,
+      bg: { type: "grad", c1: "#14212e", c2: "#060a0e" },
+      build(){ return [
+        newItem("particles", { particles: "rain", color: "#8fb8ff", color2: "#bcd8ff", size: .45 }),
+        newItem("shape", { shape: "cloud", color: "#46586b", x: .5, y: .18, size: .85, op: .95, keys: [
+          K(0, .42, .18, .85, 0, .95, "linear"), K(5, .62, .16, .85, 0, .95, "linear")
+        ]}),
+        newItem("emoji", { emoji: "🌱", x: .5, y: .82, size: .18, keys: [
+          K(0, .5, .86, .12, 0, .8, "out"), K(5, .5, .80, .20, 0, 1)
+        ]})
+      ]; }
+    },
+    {
+      id: "fireflies", name: "🌟 জোনাকি", dur: 6,
+      bg: { type: "grad", c1: "#0a1424", c2: "#03060b" },
+      build(){ return [
+        newItem("shape", { shape: "circle", color: "#e8e0b0", x: .74, y: .18, size: .16, glow: .8 }),
+        newItem("particles", { particles: "firefly", color: "#ffe066", color2: "#c2ff66", size: .3 }),
+        newItem("emoji", { emoji: "🌳", x: .28, y: .74, size: .34, op: .95, keys: [
+          K(0, .28, .74, .34, 0, .95, "smooth"), K(3, .30, .73, .35, 0, .95), K(6, .28, .74, .34, 0, .95)
+        ]})
+      ]; }
+    },
+    {
+      id: "catjump", name: "🐱 বিড়াল লাফ", dur: 2.6,
+      bg: { type: "grad", c1: "#2b2140", c2: "#0a0812" },
+      build(){ return [
+        newItem("shape", { shape: "rect", color: "#3a2f57", x: .5, y: .88, size: .18, keys: [
+          K(0, .5, .90, .16, 0, 1, "linear"), K(2.6, .5, .90, .16, 0, 1, "linear")
+        ]}),
+        newItem("emoji", { emoji: "🐱", x: .5, y: .6, size: .3, keys: [
+          K(0,   .5, .70, .30, 0,  1, "out"),
+          K(1.0, .5, .28, .34, -8, 1, "in"),
+          K(1.9, .5, .70, .30, 0,  1, "bounce"),
+          K(2.6, .5, .70, .30, 0,  1)
+        ]})
+      ]; }
+    },
+    {
+      id: "title", name: "🎬 টাইটেল", dur: 4,
+      bg: { type: "grad", c1: "#10123a", c2: "#06060f" },
+      build(){ return [
+        newItem("shape", { shape: "circle", color: "#22d3ee", x: .5, y: .45, size: .7, op: .18, glow: .7, keys: [
+          K(0, .5, .45, .55, 0, .10, "smooth"), K(2, .5, .45, .75, 0, .22), K(4, .5, .45, .55, 0, .10)
+        ]}),
+        newItem("text", { text: "MithuStudio", color: "#ffffff", x: .5, y: .42, size: .52, glow: .25, keys: [
+          K(0,   .5, .46, .40, 0, 0, "out"),
+          K(0.6, .5, .42, .52, 0, 1, "smooth"),
+          K(3.4, .5, .42, .52, 0, 1, "in"),
+          K(4,   .5, .44, .48, 0, 0)
+        ]}),
+        newItem("text", { text: "made at home", color: "#9aa6c8", x: .5, y: .56, size: .18, keys: [
+          K(0,   .5, .58, .16, 0, 0, "out"),
+          K(1.0, .5, .56, .18, 0, 1, "smooth"),
+          K(3.4, .5, .56, .18, 0, 1, "in"),
+          K(4,   .5, .58, .16, 0, 0)
+        ]})
+      ]; }
+    }
+  ];
+
+  function loadTemplate(tp){
+    stop();
+    S.bg = JSON.parse(JSON.stringify(tp.bg));
+    S.duration = tp.dur;
+    S.items = tp.build();
+    S.sel = S.items.length ? S.items[0].id : null;
+    S.t = 0;
+    $("#dur").value = tp.dur;
+    $("#durVal").textContent = tp.dur.toFixed(1);
+    $("#bg1").value = S.bg.c1;
+    $("#bg2").value = S.bg.c2;
+    $("#result").classList.remove("show");
+    setStatus(null);
+    renderLayers(); syncPropsUI(); updateTimeUI(); draw(0, true);
+  }
+
+  $("#templates").innerHTML = TEMPLATES.map(t =>
+    '<button class="chip" data-tp="' + t.id + '">' + t.name + "</button>"
+  ).join("");
+  $("#templates").onclick = e => {
+    const b = e.target.closest("[data-tp]");
+    if(!b) return;
+    const tp = TEMPLATES.find(t => t.id === b.dataset.tp);
+    if(tp) loadTemplate(tp);
+  };
+
+  /* ================= EXPORT ================= */
+  function pickMime(){
+    const list = [
+      "video/mp4;codecs=avc1.42E01E",
+      "video/mp4;codecs=avc1",
+      "video/mp4",
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm"
+    ];
+    for(const m of list){
+      try { if(window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m; } catch(e){}
+    }
+    return "";
+  }
+
+  $("#loop").onchange = () => $("#repWrap").classList.toggle("hide", !$("#loop").checked);
+  $("#repeat").oninput = () => { $("#repVal").textContent = $("#repeat").value; };
+
+  function setStatus(kind, msg){
+    const el = $("#exportStatus");
+    el.className = "";
+    if(!kind){ el.innerHTML = ""; return; }
+    el.classList.add("show");
+    if(kind === "busy"){
+      el.innerHTML = '<div id="expMsg">' + (msg || "") + "</div><div class=\"bar\"><i></i></div>";
+    } else if(kind === "ok"){
+      el.classList.add("ok"); el.textContent = msg;
+    } else {
+      el.classList.add("err"); el.textContent = "❌ " + msg;
+    }
+  }
+
+  $("#exportBtn").onclick = async () => {
+    if(!S.items.length) return setStatus("err", "আগে কিছু একটা যোগ করো বা টেমপ্লেট বেছে নাও।");
+    stop();
+
+    const mime = pickMime();
+    if(!mime) return setStatus("err", "এই ব্রাউজার রেকর্ডিং সাপোর্ট করে না। Chrome ব্যবহার করো।");
+    const ext = mime.indexOf("mp4") >= 0 ? "mp4" : "webm";
+
+    const btn = $("#exportBtn");
+    btn.disabled = true;
+    btn.textContent = "⏳ রেকর্ড হচ্ছে...";
+    // রেকর্ডিং চলাকালীন ক্যানভাসের সাইজ/দৈর্ঘ্য বদলালে আউটপুট নষ্ট হয়
+    $("#fmt").disabled = true;
+    $("#dur").disabled = true;
+    S.recording = true;
+    $("#result").classList.remove("show");
+    setStatus("busy", "রেকর্ডিং শুরু হচ্ছে...");
+
+    let t0 = performance.now();
+    draw(0, false);
+
+    let stream, rec, chunks = [];
+    try{
+      stream = stage.captureStream(30);
+      rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 9000000 });
+    }catch(e){
+      S.recording = false;
+      $("#fmt").disabled = false;
+      $("#dur").disabled = false;
+      btn.disabled = false; btn.textContent = "📤 ভিডিও বানাও (Export)";
+      return setStatus("err", "রেকর্ডার চালু করা যায়নি: " + e.message);
+    }
+
+    rec.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
+
+    const done = new Promise(res => { rec.onstop = res; });
+    rec.start(200);
+
+    // প্রথম ১৮০ms স্থির t=0 ফ্রেম — লুপের শুরু ও শেষ হুবহু মিলবে
+    draw(0, false);
+    await new Promise(r => setTimeout(r, 180));
+    t0 = performance.now();
+
+    const msg = document.getElementById("expMsg");
+    await new Promise(resolve => {
+      function tick(){
+        const t = (performance.now() - t0) / 1000;
+        if(msg) msg.textContent = "রেকর্ড হচ্ছে... " + Math.min(t, S.duration).toFixed(1) + " / " + S.duration.toFixed(1) + "s";
+        if(t >= S.duration){
+          draw(S.duration, false);
+          setTimeout(() => { try{ rec.stop(); }catch(e){} resolve(); }, 260);
+          return;
+        }
+        draw(t, false);
+        requestAnimationFrame(tick);
+      }
+      tick();
+    });
+
+    await done;
+    try{ stream.getTracks().forEach(t => t.stop()); }catch(e){}
+
+    const blob = new Blob(chunks, { type: mime });
+    setStatus("busy", "ভিডিও প্রসেস হচ্ছে (ffmpeg)... একটু অপেক্ষা করো 🎬");
+
+    const qs = new URLSearchParams({
+      ext: ext,
+      music: $("#music").value,
+      loop: $("#loop").checked ? "1" : "0",
+      repeat: $("#repeat").value,
+      dur: S.duration.toFixed(2),
+      // রেকর্ডার নিরাপত্তার জন্য শুরুতে ১৮০ms স্থির ফ্রেম আর শেষে বাড়তি
+      // ফ্রেম রাখে — সার্ভার skip কেটে ঠিক অ্যানিমেশনের দৈর্ঘ্য সমান করে
+      skip: "0.18",
+      exact: S.duration.toFixed(2)
+    });
+
+    try{
+      const res = await fetch("/api/export?" + qs.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/octet-stream" },
+        body: blob
+      });
+      const out = await res.json();
+      if(!out.ok) throw new Error(out.error || "এক্সপোর্ট ব্যর্থ");
+
+      $("#player").src = out.url + "?t=" + Date.now();
+      $("#player").load();
+      $("#dl").href = "/files/" + encodeURIComponent(out.name);
+      $("#dl").setAttribute("download", out.name);
+
+      let mm = Math.floor(out.seconds / 60), ss = Math.round(out.seconds - mm * 60);
+      if(ss === 60){ mm += 1; ss = 0; }
+      const length = mm > 0 ? mm + "m " + ss + "s" : ss + "s";
+      $("#meta").innerHTML = [
+        "⏱️ " + length,
+        "💾 " + out.size_mb + " MB",
+        "📐 " + S.w + "×" + S.h,
+        "🎵 " + ($("#music").value || "নেই")
+      ].map(c => '<span class="mchip">' + c + "</span>").join("");
+
+      $("#result").classList.add("show");
+      $("#player").play().catch(() => {});
+      setStatus("ok", "✅ ভিডিও তৈরি — নিচে দেখো, ডাউনলোডও করতে পারো।");
+    }catch(e){
+      setStatus("err", e.message || String(e));
+    }finally{
+      S.recording = false;
+      $("#fmt").disabled = false;
+      $("#dur").disabled = false;
+      btn.disabled = false;
+      btn.textContent = "📤 ভিডিও বানাও (Export)";
+      draw(S.t, true);
+    }
+  };
+
+  /* ================= BOOT ================= */
+  stage.width = S.w; stage.height = S.h;
+  loadTemplate(TEMPLATES[0]);
+  updateTimeUI();
+})();
+</script>
+</body>
+</html>

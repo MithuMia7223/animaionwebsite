@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# তৈরি হওয়া ভিডিও ও টেম্প ফাইল (বড়, পুনরায় তৈরি করা যায়)
+app/output/
+studio/output/
+animator/output/
+assets/output/
+assets/auto_in/
+
+# সিস্টেম
+.DS_Store
+*.log
+mithu_test.log

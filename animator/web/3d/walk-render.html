@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<title>3D → স্প্রাইট রেন্ডারার (অফলাইন)</title>
+<style>
+  body{margin:0;background:#101018;color:#e9ecf5;font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh}
+  #cv{background:transparent}
+  p{max-width:560px;line-height:1.5;font-size:13px;color:#8b93a8}
+</style>
+</head>
+<body>
+<div>
+  <canvas id="cv" width="640" height="640"></canvas>
+  <p>ব্রিজ টুল: 3D ক্যারেক্টর → ফ্রেম → স্প্রাইট। __renderAt(t) ডেকে যেকোনো সাইকেল-পজিশনের PNG নেওয়া যায় (স্বচ্ছ ব্যাকগ্রাউন্ড)। নিজের GLB যোগ করতে GLTFLoader-সহ এই পেজটাই বাড়ান।</p>
+</div>
+<script type="module">
+import * as THREE from "../three/three.module.js";
+
+const cv = document.getElementById("cv");
+const renderer = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
+renderer.setClearColor(0x000000, 0);
+renderer.setSize(640, 640, false);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+camera.position.set(0, 2.6, 7.4);
+camera.lookAt(0, 1.55, 0);
+
+scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x2a2f3a, 1.1));
+const key = new THREE.DirectionalLight(0xffffff, 2.2);
+key.position.set(-4, 6, 5);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x7c5cff, 1.1);
+rim.position.set(5, 3, -4);
+scene.add(rim);
+
+/* লো-পলি রোবট — সব অংশ pivot-group-এ, তাই হাঁটার গণিত সহজ */
+const M = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.45, metalness: 0.25 });
+const box = (w, h, d, c, x, y, z, parent) => {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M(c));
+  m.position.set(x, y, z);
+  parent.add(m);
+  return m;
+};
+
+const robot = new THREE.Group();
+scene.add(robot);
+robot.scale.setScalar(0.012);   /* ডিজাইন-ইউনিট (২৩০ লম্বা) → ওয়ার্ল্ড ~২.৮ ইউনিট */
+
+box(74, 92, 46, 0x4dd4ff, 0, 118, 0, robot);                       // ধড়
+box(50, 14, 46, 0x2aa8d6, 0, 66, 0, robot);                        // নিচ-বেল্ট
+const head = new THREE.Group(); robot.add(head); head.position.y = 196;
+box(46, 40, 42, 0x8fd3ff, 0, 0, 0, head);                          // মাথা
+box(10, 10, 4, 0x22d3ee, -11, 4, 22, head);                        // চোখ-বাঁ
+box(10, 10, 4, 0x22d3ee, 11, 4, 22, head);                         // চোখ-ডান
+box(6, 16, 6, 0x2aa8d6, 0, 30, 0, head);                           // অ্যান্টেনা-ডগা
+
+const armL = new THREE.Group(); armL.position.set(-46, 152, 0); robot.add(armL);
+box(16, 66, 18, 0x3ab5e6, 0, -34, 0, armL);
+box(20, 14, 20, 0x2aa8d6, 0, -72, 0, armL);                        // হাত
+const armR = new THREE.Group(); armR.position.set(46, 152, 0); robot.add(armR);
+box(16, 66, 18, 0x3ab5e6, 0, -34, 0, armR);
+box(20, 14, 20, 0x2aa8d6, 0, -72, 0, armR);
+
+const legL = new THREE.Group(); legL.position.set(-20, 60, 0); robot.add(legL);
+box(20, 58, 24, 0x33436b, 0, -30, 0, legL);
+box(24, 12, 34, 0x1b2340, 0, -64, 8, legL);                        // পা
+const legR = new THREE.Group(); legR.position.set(20, 60, 0); robot.add(legR);
+box(20, 58, 24, 0x33436b, 0, -30, 0, legR);
+box(24, 12, 34, 0x1b2340, 0, -64, 8, legR);
+
+/* হাঁটার সাইকেল — t = 0..1 (এক পুরো স্ট্রাইড) */
+function applyPose(t){
+  const ph = t * Math.PI * 2;
+  const swing = 0.62;
+  legL.rotation.x = Math.sin(ph) * swing;
+  legR.rotation.x = -Math.sin(ph) * swing;
+  armL.rotation.x = -Math.sin(ph) * 0.5;
+  armR.rotation.x = Math.sin(ph) * 0.5;
+  armL.rotation.z = 0.10; armR.rotation.z = -0.10;
+  robot.position.y = Math.abs(Math.sin(ph)) * 0.10;                 // হাঁটতে ওঠা-নামা
+  robot.rotation.y = 0;                                             // সামনে-মুখী বিলবোর্ড
+}
+
+applyPose(0);
+renderer.render(scene, camera);
+
+/* টুল: যেকোনো সাইকেল-পজিশনের PNG (base64) — বাইরে থেকে ডাকা যায় */
+window.__renderAt = (t) => {
+  applyPose(((t % 1) + 1) % 1);
+  renderer.render(scene, camera);
+  return cv.toDataURL("image/png");
+};
+</script>
+</body>
+</html>
