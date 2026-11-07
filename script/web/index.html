@@ -686,7 +686,9 @@ const CHAR_GROUPS = [
                 "doctor", "chef", "teacher", "farmer", "king", "princess",
                 "hero", "astronaut"]],
   ["🐾 প্রাণী", ["cat", "tiger", "lion", "dog", "rabbit", "bear", "panda",
-                "monkey", "elephant", "fox", "mouse", "parrot", "cow", "horse", "sheep",
+                "monkey", "elephant", "fox", "mouse", "cow", "deer", "goat", "parrot",
+                "horse", "sheep", "donkey", "camel",
+                "peacock", "duck", "bee", "shark",
                 "frog", "owl", "penguin", "chick", "bird", "fish", "turtle",
                 "dino", "unicorn"]],
   ["✨ কল্পনা", ["robot", "alien", "ghost", "fairy"]]
@@ -989,6 +991,40 @@ const CHARS = {
     fur: "#22c55e", furD: "#15803d",
     beak: "#e11d48", muzzle: "#e0fbff", tail: "none"
   },
+  peacock: {
+    kind: "bird", body: "bird", name: "ময়ূর", label: "ময়ূর", emoji: "🦚",
+    fur: "#2563eb", furD: "#1d4ed8",
+    beak: "#f59e0b", muzzle: "#bfdbfe", tail: "none"
+  },
+  camel: {
+    quad: true,
+    kind: "animal", body: "animal", name: "উট", label: "উট", emoji: "🐪",
+    fur: "#d9a05b", furD: "#b07a3a",
+    muzzle: "#f2ddb8", nose: "#6b4423",
+    ears: "small", tail: "bush"
+  },
+  duck: {
+    kind: "bird", body: "bird", name: "হাঁস", label: "হাঁস", emoji: "🦆",
+    fur: "#f8fafc", furD: "#cbd5e1",
+    beak: "#f59e0b", muzzle: "#fff3c4"
+  },
+  donkey: {
+    quad: true,
+    kind: "animal", body: "animal", name: "গাধা", label: "গাধা", emoji: "🫏",
+    fur: "#9aa0a6", furD: "#6b7075",
+    muzzle: "#e5e1d8", nose: "#4b4f55",
+    ears: "big", tail: "bush"
+  },
+  shark: {
+    kind: "animal", body: "fish", name: "হাঙর", label: "হাঙর", emoji: "🦈",
+    fur: "#5b7285", furD: "#3d4f5c",
+    muzzle: "#dbe7f0"
+  },
+  bee: {
+    kind: "bird", body: "bird", name: "মৌমাছি", label: "মৌমাছি", emoji: "🐝",
+    fur: "#facc15", furD: "#ca8a04",
+    beak: "#1f2937", wings: true, tail: "none"
+  },
   horse: {
     quad: true,
     kind: "animal", body: "animal", name: "ঘোড়া", label: "ঘোড়া", emoji: "🐴",
@@ -1113,6 +1149,12 @@ const CHAR_MAP = [
   [["এলিয়েন", "alien"], "alien"],
   [["ভুত", "ভূত", "ghost"], "ghost"],
   [["পরি", "পরী", "পরিটা", "পরিটী", "fairy"], "fairy"],
+  [["ময়ূর", "ময়ুর", "ময়ূরী", "peacock"], "peacock"],
+  [["উট", "উটের", "উটে", "camel"], "camel"],
+  [["হাঁস", "হাস", "হাঁসে", "duck"], "duck"],
+  [["গাধা", "গাধার", "donkey"], "donkey"],
+  [["হাঙর", "হাঙ্গর", "শার্ক", "shark"], "shark"],
+  [["মৌমাছি", "মৌমাছী", "মাছি", "bee"], "bee"],
   [["মুরগি", "মুরগিছানা", "ছানা", "chick"], "chick"],
   [["পাখি", "পাখী", "টিয়া", "bird"], "bird"],
 
@@ -5271,6 +5313,8 @@ const REAL_SIZE = {
   fox: 0.74, penguin: 0.66, cat: 0.62, owl: 0.58, turtle: 0.55,
   rabbit: 0.55, fish: 0.60, parrot: 0.50, bird: 0.50, frog: 0.42,
   mouse: 0.38, chick: 0.34,
+  camel: 1.30,
+  peacock: 0.55, duck: 0.48, donkey: 0.92, shark: 1.25, bee: 0.22,
   /* মানুষ */
   boy: 1.00, girl: 1.00, man: 1.00, woman: 1.00, baby: 1.00,
   grandpa: 0.98, grandma: 0.96, doctor: 1.00, chef: 1.00,
