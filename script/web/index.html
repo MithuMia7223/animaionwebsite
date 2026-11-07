@@ -2101,6 +2101,7 @@ function makeScenes(lines){
 
   // গল্পের ধারাবাহিকতা — নতুন জায়গার কথা না এলে আগের দৃশ্যেই থাকে
   let lastScene = "";
+  let lastMood = "";
   const scs = lines.map((text, i) => {
     // "রাজু: কেমন আছো?" → নাম আলাদা, কথাটা টেক্সট
     const sp = parseSpeaker(text);
@@ -2137,6 +2138,20 @@ function makeScenes(lines){
         }
         lastScene = sc;
         return sc;
+      })(),
+      mood: (() => {
+        // গল্পে সময়ের কথা এলে সেই আলো, না এলে আগের মুডই থাকে
+        const low = (say || "").toLowerCase();
+        let m = "";
+        for(const [keys, key] of MOOD_MAP){
+          for(const k of keys){
+            if(matchKey(low, k.toLowerCase())){ m = key; break; }
+          }
+          if(m) break;
+        }
+        if(!m) m = lastMood;
+        lastMood = m;
+        return m;
       })(),
       cam: cams[i % cams.length],
       trans: trans[i % trans.length],
@@ -2387,6 +2402,49 @@ function detectScene(text, idx){
   // কিছু না মিললে "" — গল্পের ধারাবাহিকতা makeScenes ঠিক করে:
   // আগের দৃশ্যটাই থাকে, প্রথম দৃশ্য হলে চক্র থেকে নেয়
   return "";
+}
+
+/* 🎨 রঙ-গ্রেডিং — গল্পের সময়-মুড অনুযায়ী আলো (ভোর/দুপুর/সন্ধ্যা/রাত) */
+const MOOD_MAP = [
+  [["রাত", "নিশি", "মধ্যরাত", "ঘুম"], "night"],
+  [["সন্ধ্যা", "গোধূলি", "সূর্য ডোবে"], "dusk"],
+  [["ভোর", "সকাল", "সূর্য ওঠে"], "dawn"],
+  [["দুপুর", "মধ্যাহ্ন"], "noon"]
+];
+
+/* দৃশ্যের উপর মুড-আলো + ভিনিয়েট — ফ্ল্যাট-ছবি প্রোডাকশন-ছবি হয়ে ওঠে */
+function drawMoodGrade(mood, w, h){
+  ctx.save();
+  if(mood === "night"){
+    ctx.fillStyle = "rgba(10,18,56,.32)";
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "rgba(30,60,140,.14)";
+    ctx.fillRect(0, 0, w, h * 0.5);
+  } else if(mood === "dusk"){
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, "rgba(255,120,60,.20)");
+    g.addColorStop(0.6, "rgba(150,60,160,.16)");
+    g.addColorStop(1, "rgba(40,20,80,.22)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  } else if(mood === "dawn"){
+    const g = ctx.createLinearGradient(0, 0, 0, h * 0.8);
+    g.addColorStop(0, "rgba(255,200,120,.22)");
+    g.addColorStop(1, "rgba(255,200,120,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  } else if(mood === "noon"){
+    ctx.fillStyle = "rgba(255,250,215,.07)";
+    ctx.fillRect(0, 0, w, h);
+  }
+  // ভিনিয়েট — কিনারা হালকা গাঢ়, চোখ মাঝের গল্পে চলে আসে
+  const v = ctx.createRadialGradient(w / 2, h * 0.45, Math.min(w, h) * 0.38,
+                                     w / 2, h * 0.50, Math.max(w, h) * 0.72);
+  v.addColorStop(0, "rgba(0,0,0,0)");
+  v.addColorStop(1, "rgba(0,0,0,.20)");
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
 }
 
 /* ---------- ছোট ছোট আঁকার হাতিয়ার ---------- */
@@ -7019,6 +7077,9 @@ function draw(t, playing){
 
     // জাদুর আলো — জোনাকি/তারা/মহাকাশের ঝিকমিক (ক্যারেক্টারের সামনে)
     drawMagicLight(scene, gt, w, h);
+
+    // 🎨 রঙ-গ্রেডিং — মুড-আলো দৃশ্যের সবকিছুর উপর, লেখা পড়ে থাকে স্পষ্ট
+    drawMoodGrade(scene.mood, w, h);
 
     if(textAlpha > 0.01){
       ctx.save();
