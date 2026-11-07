@@ -264,6 +264,12 @@
           <button class="chip" data-sample="gadha">🫏 গাধার বুদ্ধি</button>
           <button class="chip" data-sample="moyur">🦚 ময়ূরের গর্ব</button>
           <button class="chip" data-sample="hater">🐘 হাতি-ইঁদুর</button>
+          <button class="chip" data-sample="birthday">🎂 জন্মদিন</button>
+          <button class="chip" data-sample="bhoy">🌙 ভয়ের গল্প</button>
+          <button class="chip" data-sample="science">🔬 বিজ্ঞান</button>
+          <button class="chip" data-sample="ad">📢 বিজ্ঞাপন</button>
+          <button class="chip" data-sample="school">🏫 স্কুলের দিন</button>
+          <button class="chip" data-sample="bristi">🌧️ বৃষ্টির দিন</button>
         </div>
 
         <div class="hint">
@@ -710,6 +716,38 @@ const SAMPLE = {
 একদিন জালে পড়ে হাতি চিৎকার করল।
 ইঁদুর এসে জাল কেটে মুক্ত করল।
 ছোট হলেই কেউ ছোট নয় — বন্ধু।`,
+  birthday: `আজ মিতুর জন্মদিন।
+ঘর সাজানো বেলুনে বেলুনে।
+রাজু এলো উপহার হাতে।
+সবাই মিলে গাইল মিষ্টি সুরে।
+কেক কাটা হলো হাসিতে হাসিতে।
+জন্মদিন মানে ভালোবাসার উৎসব।`,
+  bhoy: `রাতের জঙ্গল — চারদিকে অন্ধকার।
+শিয়াল শুনল ঝোপের আড়ালে শব্দ।
+বজ্র গর্জে উঠল আকাশজুড়ে।
+ভয়ে শিয়াল কুঁকড়ে গেল গাছতলায়।
+সকালে দেখা গেল — শব্দটা ছিল ঝড়ের গাছের।
+ভয় সবসময় আসল না।`,
+  science: `তুমি কি জানো, মাকড়সা বৃষ্টির আগে জাল বুনে?
+জালের সুতো ভিজলে টান কমে যায়।
+তাই মাকড়সা আগেই বুঝে ফেলে — ঝড় আসছে।
+প্রতিটা ছোট্ট প্রাণী জানে নিজের বিজ্ঞান।
+শুধু দেখতে হয় খোলা চোখে।`,
+  ad: `স্বাদে অমৃত, গুণে ভাণ্ডার!
+প্রকৃতির সবচেয়ে বিশুদ্ধ মধু।
+এক চামচে শক্তির খনি।
+আজই আনুন — মিষ্টি হাসির জন্য!
+মধু মানেই ভালোবাসা।`,
+  school: `আজ রাজুর স্কুলের প্রথম দিন।
+স্যার বলল: ভয় পেয়ো না বাবা।
+নতুন বই, নতুন বন্ধু, নতুন গল্প।
+রাজু হাসতে হাসতে বলল: কাল আবার আসব।
+পড়াশোনা মানেই ভয় নয়।`,
+  bristi: `আকাশ কালো হয়ে এলো বিকেলে।
+বৃষ্টি নামল ঝমঝম করে।
+রাজু ছাতা খুলে হাসতে হাসতে হাঁটল।
+বৃষ্টি ভেজায় শুধু শরীর, মন নয়।
+বৃষ্টির দিনও মিষ্টি হয় বন্ধু পেলে।`,
   story: `রাত তখন গভীর।
 হঠাৎ একটা আলো দেখা গেলো।
 ছোট্ট মেয়েটা জানালা দিয়ে তাকালো।
@@ -2502,7 +2540,20 @@ const PROPS_MAP = [
   [["বল", "ফুটবল", "খেল"], "ball"],
   [["আপেল", "ফল"], "apple"],
   [["মুকুট", "রাজা", "রানী"], "crown"],
-  [["উপহার", "টিফিন", "বক্স"], "gift"]
+  [["উপহার", "টিফিন", "বক্স"], "gift"],
+  [["বাড়ি"], "house"],
+  [["ট্রেন"], "train"],
+  [["চেয়ার", "বসল"], "chair"],
+  [["গাছ"], "tree"],
+  [["খেলনা"], "toy"],
+  [["ঘড়ি"], "clock"],
+  [["চাবি"], "key"],
+  [["ঘণ্টা", "বাজল"], "bell"],
+  [["জাহাজ", "নৌকা"], "ship"],
+  [["বাসা"], "nest"],
+  [["আয়না"], "mirror"],
+  [["কেক", "জন্মদিন"], "cake"],
+  [["ছাতা", "বৃষ্টি"], "umbrella"]
 ];
 
 function detectProps(text){
@@ -2587,6 +2638,125 @@ function drawProps(sc, t, w, h){
       ctx.fillStyle = "#f472b6";
       ctx.fillRect(-size * 0.07, -size * 0.3, size * 0.14, size * 0.62);
       ctx.fillRect(-size * 0.42, -size * 0.05, size * 0.84, size * 0.12);
+    } else if(p === "house"){
+      ctx.fillStyle = "#fbbf24";
+      ctx.fillRect(-size * 0.4, -size * 0.18, size * 0.8, size * 0.55);
+      ctx.fillStyle = "#b91c1c";
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.5, -size * 0.18);
+      ctx.lineTo(0, -size * 0.62);
+      ctx.lineTo(size * 0.5, -size * 0.18);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#7c3aed";
+      ctx.fillRect(-size * 0.09, -size * 0.05, size * 0.18, size * 0.42);
+    } else if(p === "train"){
+      ctx.fillStyle = "#0ea5e9";
+      ctx.fillRect(-size * 0.55, -size * 0.35, size * 0.65, size * 0.55);
+      ctx.fillStyle = "#1d4ed8";
+      ctx.fillRect(size * 0.12, -size * 0.18, size * 0.42, size * 0.38);
+      ctx.fillStyle = "#374151";
+      ctx.fillRect(-size * 0.42, -size * 0.55, size * 0.16, size * 0.24);
+      ctx.fillStyle = "#1f2937";
+      [-0.32, 0.0, 0.32].forEach(wx => {
+        ctx.beginPath(); ctx.arc(wx * size, size * 0.24, size * 0.11, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.fillStyle = "rgba(255,255,255,.7)";
+      ctx.beginPath(); ctx.arc(-size * 0.34, -size * 0.62, size * 0.1, 0, Math.PI * 2); ctx.fill();
+    } else if(p === "chair"){
+      ctx.fillStyle = "#a16207";
+      ctx.fillRect(-size * 0.3, -size * 0.1, size * 0.6, size * 0.12);
+      ctx.fillRect(-size * 0.3, -size * 0.55, size * 0.1, size * 0.5);
+      ctx.fillRect(-size * 0.26, size * 0.02, size * 0.08, size * 0.3);
+      ctx.fillRect(size * 0.18, size * 0.02, size * 0.08, size * 0.3);
+    } else if(p === "tree"){
+      ctx.fillStyle = "#7c4a21";
+      ctx.fillRect(-size * 0.07, -size * 0.1, size * 0.14, size * 0.55);
+      ctx.fillStyle = "#16a34a";
+      ctx.beginPath(); ctx.arc(0, -size * 0.35, size * 0.42, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#22c55e";
+      ctx.beginPath(); ctx.arc(-size * 0.22, -size * 0.5, size * 0.26, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(size * 0.22, -size * 0.48, size * 0.24, 0, Math.PI * 2); ctx.fill();
+    } else if(p === "toy"){
+      ctx.fillStyle = "#f59e0b";
+      ctx.beginPath(); ctx.arc(0, -size * 0.3, size * 0.16, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ef4444";
+      roundRect(-size * 0.3, -size * 0.2, size * 0.6, size * 0.5, size * 0.08); ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(-size * 0.1, size * 0.02, size * 0.06, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(size * 0.1, size * 0.02, size * 0.06, 0, Math.PI * 2); ctx.fill();
+    } else if(p === "clock"){
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(0, 0, size * 0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#1f2937"; ctx.lineWidth = Math.max(2, size * 0.06);
+      ctx.beginPath(); ctx.arc(0, 0, size * 0.4, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = Math.max(2, size * 0.045);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -size * 0.26); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(size * 0.18, size * 0.06); ctx.stroke();
+    } else if(p === "key"){
+      ctx.strokeStyle = "#eab308"; ctx.lineWidth = Math.max(2.5, size * 0.09);
+      ctx.beginPath(); ctx.arc(-size * 0.2, 0, size * 0.18, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-size * 0.02, 0); ctx.lineTo(size * 0.42, 0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(size * 0.3, 0); ctx.lineTo(size * 0.3, size * 0.16); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(size * 0.42, 0); ctx.lineTo(size * 0.42, size * 0.18); ctx.stroke();
+    } else if(p === "bell"){
+      ctx.fillStyle = "#eab308";
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.32, size * 0.2);
+      ctx.quadraticCurveTo(-size * 0.3, -size * 0.42, 0, -size * 0.42);
+      ctx.quadraticCurveTo(size * 0.3, -size * 0.42, size * 0.32, size * 0.2);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#92400e";
+      ctx.beginPath(); ctx.arc(0, size * 0.26, size * 0.08, 0, Math.PI * 2); ctx.fill();
+    } else if(p === "ship"){
+      ctx.fillStyle = "#7c2d12";
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.55, size * 0.05);
+      ctx.quadraticCurveTo(0, size * 0.5, size * 0.55, size * 0.05);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#57534e"; ctx.lineWidth = Math.max(2, size * 0.05);
+      ctx.beginPath(); ctx.moveTo(0, size * 0.05); ctx.lineTo(0, -size * 0.62); ctx.stroke();
+      ctx.fillStyle = "#f8fafc";
+      ctx.beginPath();
+      ctx.moveTo(size * 0.04, -size * 0.58);
+      ctx.quadraticCurveTo(size * 0.42, -size * 0.3, size * 0.04, -size * 0.05);
+      ctx.closePath(); ctx.fill();
+    } else if(p === "nest"){
+      ctx.fillStyle = "#a16207";
+      ctx.beginPath(); ctx.ellipse(0, size * 0.1, size * 0.45, size * 0.22, 0, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = "#fde68a";
+      ctx.beginPath(); ctx.ellipse(-size * 0.14, -size * 0.02, size * 0.13, size * 0.16, -0.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(size * 0.14, -size * 0.02, size * 0.13, size * 0.16, 0.2, 0, Math.PI * 2); ctx.fill();
+    } else if(p === "mirror"){
+      ctx.fillStyle = "#94a3b8";
+      ctx.beginPath(); ctx.ellipse(0, 0, size * 0.32, size * 0.48, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#dbeafe";
+      ctx.beginPath(); ctx.ellipse(0, 0, size * 0.24, size * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.ellipse(-size * 0.1, -size * 0.12, size * 0.07, size * 0.16, -0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if(p === "cake"){
+      ctx.fillStyle = "#fbcfe8";
+      ctx.fillRect(-size * 0.42, -size * 0.05, size * 0.84, size * 0.34);
+      ctx.fillStyle = "#f9a8d4";
+      ctx.fillRect(-size * 0.34, -size * 0.3, size * 0.68, size * 0.26);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(-size * 0.34, -size * 0.12, size * 0.68, size * 0.07);
+      ctx.fillStyle = "#92400e";
+      ctx.fillRect(-size * 0.03, -size * 0.55, size * 0.06, size * 0.25);
+      ctx.fillStyle = "#fb923c";
+      ctx.beginPath(); ctx.ellipse(0, -size * 0.62, size * 0.06, size * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+    } else if(p === "umbrella"){
+      ctx.fillStyle = "#8b5cf6";
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.55, -size * 0.05);
+      ctx.quadraticCurveTo(0, -size * 0.72, size * 0.55, -size * 0.05);
+      ctx.quadraticCurveTo(0, -size * 0.18, -size * 0.55, -size * 0.05);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#1f2937"; ctx.lineWidth = Math.max(2, size * 0.05);
+      ctx.beginPath(); ctx.moveTo(0, -size * 0.6); ctx.lineTo(0, size * 0.28);
+      ctx.quadraticCurveTo(0, size * 0.42, size * 0.14, size * 0.4);
+      ctx.stroke();
     }
     ctx.restore();
   });
