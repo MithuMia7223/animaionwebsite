@@ -2413,6 +2413,27 @@ const MOOD_MAP = [
   [["দুপুর", "মধ্যাহ্ন"], "noon"]
 ];
 
+/* 🎥 ফোরগ্রাউন্ড bokeh — ধীরে ভাসমান নরম আলোর বৃত্ত; ফ্রেমে অবাস্তব
+   গভীরতার অনুভূতি আনে (ক্যামেরার ফোকাস-বাইরের আলো যেমন দেখায়) */
+function drawBokeh(sc, t, w, h){
+  ctx.save();
+  ctx.globalCompositeOperation = "screen";
+  for(let i = 0; i < 6; i++){
+    const r0 = rnd(i, sc.index * 7 + 3);
+    const sp = 0.05 + rnd(i, 11) * 0.08;
+    const x = (0.12 + r0 * 0.76 + Math.sin(t * sp * 2 + i) * 0.03) * w;
+    const y = (0.16 + rnd(i, 5) * 0.62 + Math.cos(t * sp + i * 2) * 0.04) * h;
+    const rr = (0.035 + rnd(i, 17) * 0.05) * Math.min(w, h);
+    const g = ctx.createRadialGradient(x, y, 0, x, y, rr);
+    g.addColorStop(0, hexA(sc.accent, 0.10));
+    g.addColorStop(0.7, hexA(sc.accent, 0.05));
+    g.addColorStop(1, hexA(sc.accent, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, y, rr, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
 /* দৃশ্যের উপর মুড-আলো + ভিনিয়েট — ফ্ল্যাট-ছবি প্রোডাকশন-ছবি হয়ে ওঠে */
 function drawMoodGrade(mood, w, h){
   ctx.save();
@@ -7127,10 +7148,22 @@ function draw(t, playing){
   // একটা দৃশ্যের পুরো ছবি আঁকি (ক্যামেরা সহ) — ট্রানজিশনে আগের দৃশ্যও লাগে
   const paint = (scene, st, gt, textAlpha = 1) => {
     const c2 = S.showCamera ? camAt(scene, st, w, h) : { z: 1, dx: 0, dy: 0 };
+
+    // 🎥 তিন-স্তর প্যারালাক্স — background ধীরে (০.৩৫), ফ্লোরা মাঝে (০.৬),
+    // ক্যারেক্টর সামনে (০.৮৫) — ক্যামেরা নড়লে গভীরতা সত্যি বোঝা যায়
+    ctx.save();
+    camApply(c2, 0.35, w, h);
+    ctx.translate(w / 2, h / 2); ctx.scale(1.07, 1.07); ctx.translate(-w / 2, -h / 2);
     drawBackground(scene, gt, w, h, c2);
     drawLoopBG(scene, gt, w, h, c2);
+    ctx.restore();
+
+    ctx.save();
+    camApply(c2, 0.60, w, h);
+    ctx.translate(w / 2, h / 2); ctx.scale(1.05, 1.05); ctx.translate(-w / 2, -h / 2);
     drawFloraDetails(scene, gt, w, h);     // 🌸 ফুল-পাথর-পাখি-প্রজাপতি — দৃশ্য-জীবন্ত
     drawSparkles(scene, gt, w, h);
+    ctx.restore();
 
     if(S.showChar && (scene.char || scene.speaker || (scene.cast && scene.cast.length > 1))){
       // দৃশ্য বা সংলাপ থাকলেই ক্যারেক্টার মাটিতে দাঁড়ায় — কেউ হাওয়ায় ভাসে না
@@ -7151,6 +7184,9 @@ function draw(t, playing){
 
     // জাদুর আলো — জোনাকি/তারা/মহাকাশের ঝিকমিক (ক্যারেক্টারের সামনে)
     drawMagicLight(scene, gt, w, h);
+
+    // 🎥 ফোরগ্রাউন্ড bokeh — নরম অবাস্তব আলোর বৃত্ত (গভীরতার অনুভূতি)
+    drawBokeh(scene, gt, w, h);
 
     // 🎨 রঙ-গ্রেডিং — মুড-আলো দৃশ্যের সবকিছুর উপর, লেখা পড়ে থাকে স্পষ্ট
     drawMoodGrade(scene.mood, w, h);
