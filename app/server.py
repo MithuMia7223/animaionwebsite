@@ -763,16 +763,19 @@ class Handler(BaseHTTPRequestHandler):
             ext = "webm"
 
         voice_job = (q.get("vjob", [""])[0] or "").strip()
+        sfx = _parse_sfx((q.get("sfx", [""])[0] or ""))
         music = q.get("music", [""])[0]
 
         opts = {
-            # ভয়েস থাকলে মিউজিক পরে ভয়েসের সাথে মেশানো হবে
-            "music": "" if voice_job else music,
+            # ভয়েস/এসএফএক্স থাকলে মিউজিক পরে মেশানো হবে
+            "music": "" if (voice_job or any(list(sfx or []))) else music,
             "loop": q.get("loop", ["0"])[0] in ("1", "true", "on"),
             "repeat": q.get("repeat", ["1"])[0],
             "dur": q.get("dur", ["0"])[0],
             "skip": q.get("skip", ["0"])[0],
             "exact": q.get("exact", ["0"])[0],
+            # ব্রাউজার-এনকোড করা WebCodecs MP4 ইতিমধ্যেই পরিষ্কার H.264 — পুনঃএনকোড নয়
+            "raw_ready": q.get("raw_ready", ["0"])[0] == "1",
         }
 
         length = int(self.headers.get("Content-Length", 0))
@@ -795,20 +798,21 @@ class Handler(BaseHTTPRequestHandler):
 
             res = animator.export_video(src, opts)
 
-            # ---- ভয়েস বসানো
-            if voice_job and res.get("ok"):
-                raw = (q.get("vdurs", [""])[0] or "").strip()
-                durs = []
-                for part in raw.split(","):
-                    part = part.strip()
-                    if not part:
-                        continue
-                    try:
-                        durs.append(int(float(part)))
-                    except ValueError:
-                        durs.append(0)
+            # ---- দৃশ্য-দৈর্ঘ্যের তালিকা — ভয়েস ও এসএফএক্স দুটোতেই লাগে
+            raw = (q.get("vdurs", [""])[0] or "").strip()
+            durs = []
+            for part in raw.split(","):
+                part = part.strip()
+                if not part:
+                    continue
+                try:
+                    durs.append(int(float(part)))
+                except ValueError:
+                    durs.append(0)
 
-                out_path = os.path.join(OUT, res["name"])
+            out_path = os.path.join(OUT, res["name"]) if res.get("ok") else None
+            total = 0
+            if out_path and res.get("ok"):
                 total = float(res.get("base_seconds") or 0)
                 if total <= 0:
                     try:
@@ -816,8 +820,21 @@ class Handler(BaseHTTPRequestHandler):
                     except Exception:  # noqa: BLE001
                         total = 0
 
+            # ---- ভয়েস নেই কিন্তু SFX (+মিউজিক) আছে — নিজের হাতে সাউন্ড ট্র্যাক
+            if not voice_job and res.get("ok") and any(list(sfx or [])) and total > 0:
+                mix = os.path.join(work, "sndmix.m4a")
+                if _mix_music_sfx(sfx, durs, music, total, mix):
+                    voiced = os.path.join(work, "sfxed.mp4")
+                    animator.mv.mux_with_music(out_path, mix, total, voiced)
+                    shutil.copy(voiced, out_path)
+                    res["size_mb"] = round(
+                        os.path.getsize(out_path) / (1024 * 1024), 1)
+
+            # ---- ভয়েস বসানো
+            if voice_job and res.get("ok"):
                 mix = os.path.join(work, "voicemix.m4a")
-                if total > 0 and build_voice_mix(voice_job, durs, music, total, mix):
+                if total > 0 and build_voice_mix(voice_job, durs, music, total,
+                                                 mix, sfx=sfx):
                     voiced = os.path.join(work, "voiced.mp4")
                     animator.mv.mux_with_music(out_path, mix, total, voiced,
                                                fades=False)

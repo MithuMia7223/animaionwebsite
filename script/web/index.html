@@ -564,6 +564,7 @@
   </div>
 </div>
 
+<script src="vendor/mp4-muxer.js"></script>
 <script>
 /* =====================================================================
    MithuScript — স্ক্রিপ্ট → অ্যানিমেটেড ভিডিও
@@ -7798,6 +7799,83 @@ function toBlobAsync(canvas, type, quality){
   return new Promise(res => canvas.toBlob(res, type, quality));
 }
 
+/* ⚡ WebCodecs এক্সপোর্ট — ব্রাউজারেই H.264 এনকোড, পুরো ভিডিও এক-আপলোডে যায়
+   (৩০০+ HTTP-ফ্রেম-আপলোড বাদ → অনেক দ্রুত, টাইমস্ট্যাম্প ফ্রেম-নিখুঁত)।
+   সাপোর্ট নেই বা ব্যর্থ হলে কলার পুরনো ফ্রেম-পাইপলাইনে ফিরে যায়।
+   দ্রষ্টব্য: sfx মেশানো এখনো শুধু পুরনো পথে আছে — sfx চালু থাকলে কলার পুরনো পথেই যায়। */
+async function exportWebCodecs(fps, frameCount, musicKey, vjob, vdurs, sfxStr){
+  const width = S.w, height = S.h;
+  const candidates = ["avc1.640028", "avc1.42002A", "avc1.42001f"];
+  let config = null;
+  const bitrate = Math.max(2500000, Math.min(14000000, Math.round(width * height * fps * 0.12)));
+  for(const codec of candidates){
+    const c = { codec: codec, width: width, height: height, framerate: fps, bitrate: bitrate, alpha: "discard" };
+    const sup = await VideoEncoder.isConfigSupported(c).catch(() => null);
+    if(sup && sup.supported){ config = c; break; }
+  }
+  if(!config) throw new Error("এই ব্রাউজারে H.264 এনকোডার সাপোর্ট করে না");
+
+  const target = new Mp4Muxer.ArrayBufferTarget();
+  const muxer = new Mp4Muxer.Muxer({
+    target: target,
+    video: { codec: "avc", width: width, height: height },
+    fastStart: "in-memory",
+    firstTimestampBehavior: "offset"
+  });
+  let encErr = null;
+  const encoder = new VideoEncoder({
+    output: (chunk, meta) => {
+      if(encErr) return;
+      try{ muxer.addVideoChunk(chunk, meta); }catch(e){ encErr = e; }
+    },
+    error: (e) => { if(!encErr) encErr = e; }
+  });
+  encoder.configure(config);
+
+  const usPer = 1000000 / fps;
+  for(let i = 0; i < frameCount; i++){
+    draw(i / fps, false);
+    const frame = new VideoFrame(stage, {
+      timestamp: Math.round(i * usPer),
+      duration: Math.round(usPer)
+    });
+    encoder.encode(frame, { keyFrame: i % (fps * 2) === 0 });
+    frame.close();
+    if(i % 10 === 0 || i === frameCount - 1){
+      const pct = Math.round(((i + 1) / frameCount) * 100);
+      setStatus("busy", "⚡ ব্রাউজারে এনকোড " + (i + 1) + " / " + frameCount + " — " + pct + "%");
+    }
+    if(encErr) throw encErr;
+    // ব্যাকপ্রেশার — এনকোডারের লাইন বেশি জমলে এক ফুলে দম নিই
+    while(encoder.encodeQueueSize > 6) await new Promise(r => setTimeout(r, 4));
+  }
+  await encoder.flush();
+  encoder.close();
+  muxer.finalize();
+
+  const blob = new Blob([target.buffer], { type: "video/mp4" });
+  setStatus("busy", "🎬 ভিডিও প্রস্তুত করা হচ্ছে (মিউজিক/ভয়েস)...");
+
+  const qs = new URLSearchParams({
+    ext: "mp4",
+    music: musicKey,
+    loop: "0",
+    repeat: "1",
+    dur: S.total.toFixed(2),
+    raw_ready: "1"          /* ব্রাউজার-এনকোড MP4 ইতিমধ্যেই পরিষ্কার — পুনঃএনকোড নয় */
+  });
+  if(vjob){ qs.set("vjob", vjob); qs.set("vdurs", vdurs.join(",")); }
+  if(/[a-z]/.test(sfxStr || "")) qs.set("sfx", sfxStr);
+  const res = await fetch("/api/export?" + qs.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/octet-stream" },
+    body: blob
+  });
+  const out = await res.json().catch(() => null);
+  if(!res.ok || !out || !out.ok) throw new Error((out && out.error) || "এক্সপোর্ট ব্যর্থ");
+  return out;
+}
+
 $("#exportBtn").onclick = async () => {
   if(!S.scenes.length) return setStatus("err", "আগে স্ক্রিপ্ট লেখো — তারপর ভিডিও বানাও।");
   stop();
@@ -7870,6 +7948,51 @@ $("#exportBtn").onclick = async () => {
   const frameCount = Math.max(1, Math.ceil(S.total * fps));
 
   try{
+    // sfx কীওয়ার্ড — দুই পথেই যায় (WebCodecs পথে /api/export এখন সাপোর্ট করে)
+    const sfxEl = $("#useSfx");
+    const sfxStr = (sfxEl && sfxEl.checked)
+      ? S.scenes.map(sc => sfxOf(sc).join(",")).join("|") : "";
+
+    // ⚡ দ্রুত পথ: WebCodecs — ব্রাউজারেই এনকোড, এক-আপলোড।
+    // সাপোর্ট নেই বা ব্যর্থ হলে নিচের নির্ভরযোগ্য পুরনো ফ্রেম-পাইপলাইনে ফিরে যায়
+    if(window.VideoEncoder && window.Mp4Muxer){
+      try{
+        let musicKeyWC = $("#music").value;
+        if(musicKeyWC === "auto"){
+          let heavy = 0, spoken = 0;
+          S.scenes.forEach(sc => {
+            if(!sc.text) return;
+            spoken++;
+            if(sc.expr === "sad" || sc.expr === "cry" || sc.expr === "scared") heavy++;
+          });
+          musicKeyWC = (spoken > 0 && heavy * 2 >= spoken) ? "calm" : "bright";
+        }
+        const outWC = await exportWebCodecs(fps, frameCount, musicKeyWC, vjob, vdurs, sfxStr);
+
+        $("#player").src = outWC.url + "?t=" + Date.now();
+        $("#player").load();
+        $("#dl").href = "/files/" + encodeURIComponent(outWC.name);
+        $("#dl").setAttribute("download", outWC.name);
+
+        let mm = Math.floor(outWC.seconds / 60);
+        let ss = Math.round(outWC.seconds - mm * 60);
+        if(ss === 60){ mm += 1; ss = 0; }
+        const length = mm > 0 ? mm + "m " + ss + "s" : ss + "s";
+        let doneMsg = "✅ ভিডিও তৈরি (⚡ WebCodecs) — " + length + ", " + outWC.size_mb + " MB";
+        if(vjob && outWC.voiced === false) doneMsg += " · ⚠️ ভয়েস মেশানো যায়নি — নিঃশব্দ";
+        if(voiceWarn) doneMsg += " · ⚠️ " + voiceWarn;
+        setStatus("ok", doneMsg);
+
+        $("#emptyResult").classList.add("hide");
+        $("#result").classList.add("show");
+        $("#resultCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+        return;
+      }catch(wcErr){
+        console.warn("WebCodecs পথ ব্যর্থ — পুরনো ফ্রেম-পাইপলাইনে ফিরছি:", wcErr);
+        setStatus("busy", "🎞️ নির্ভরযোগ্য পুরনো পথে এক্সপোর্ট হচ্ছে...");
+      }
+    }
+
     setStatus("busy", "🎞️ ফ্রেম তৈরি হচ্ছে...");
     const st = await fetch("/api/frames/start", { method: "POST" }).then(r => r.json());
     if(!st.ok) throw new Error(st.error || "ফ্রেম জব শুরু হয়নি");
@@ -7933,10 +8056,7 @@ $("#exportBtn").onclick = async () => {
       qs.set("vjob", vjob);
       qs.set("vdurs", vdurs.join(","));
     }
-    if($("#useSfx").checked){
-      const sfxStr = S.scenes.map(sc => sfxOf(sc).join(",")).join("|");
-      if(/[a-z]/.test(sfxStr)) qs.set("sfx", sfxStr);
-    }
+    if(/[a-z]/.test(sfxStr)) qs.set("sfx", sfxStr);
     // ⚡ দ্রুত মোড — GPU-এ এনকোড (২–৩×), আর ফ্রেম ইতিমধ্যেই প্রস্তুত
     if($("#fastMode") && $("#fastMode").value) qs.set("fast", "1");
 
