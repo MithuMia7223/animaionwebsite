@@ -2448,6 +2448,14 @@ function makeScenes(lines){
   /* এখনও শূন্য (পুরো স্ক্রিপ্টে কোনো পটভূমি-শব্দ নেই) — ঘরের দৃশ্যে শুরু */
   for(const s of scs){ if(!s.scene) s.scene = "room"; }
 
+  /* 🧠 গল্প-ছন্দ — শুরুতে ক্যামেরা কাছে এসে চরিত্র পরিচয় করায়,
+     শেষে দূরে সরে উপসংহারের ভাব দেয় */
+  if(scs.length >= 3){
+    scs[0].cam = "zoomIn";
+    scs[scs.length - 1].cam = "zoomOut";
+    scs[scs.length - 1].trans = "circle";
+  }
+
   /* স্পিকারদের বাঁ-ডান সাজানো — বলাবলির সময় দুই পাশে থাকে */
   const who = {};   // নাম → পাশ
   let prevSide = "R";
@@ -2941,6 +2949,7 @@ function sSky(w, h, c1, c2){
 }
 
 function sGlow(x, y, r, color, a = 0.35){
+  if(!isFinite(x + y + r) || r < 0) return;   /* NaN-মান এলে এই আভা স্কিপ */
   const g = ctx.createRadialGradient(x, y, 0, x, y, r);
   g.addColorStop(0, hexA(color, a));
   g.addColorStop(0.5, hexA(color, a * 0.35));
@@ -2967,6 +2976,7 @@ function sStars(w, h, n, t){
 }
 
 function sMoon(x, y, r, t){
+  if(!isFinite(x + y + r) || r <= 0) return;   /* NaN-মান এলে চাঁদ স্কিপ */
   sGlow(x, y, r * 2.6, "#ffe9b0", 0.22);
   const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.2, x, y, r);
   g.addColorStop(0, "#fffbe6");
@@ -8120,6 +8130,62 @@ function moveSceneLines(from, to){
   ta.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
+/* ---------- 🎬 একক-দৃশ্য আপডেট — শুধু ওই দৃশ্যটা আগের ভিডিওতে বসানো ---------- */
+function refreshManifest(){
+  fetch("/api/scenes/manifest").then(r => r.json())
+    .then(m => { S._man = (m && m.ok) ? m : null; })
+    .catch(() => { S._man = null; });
+}
+
+async function renderSceneUpdate(i){
+  const man = S._man;
+  if(!man || !man.ok || !man.full)
+    return setStatus("err", "আগে একবার পুরো ভিডিও বানাও — তারপর দৃশ্য-আপডেট চলবে।");
+  if(i >= (man.scenes || []).length)
+    return setStatus("err", "এই দৃশ্যটা শেষ ভিডিওতে ছিল না — পুরো ভিডিও আবার বানাও।");
+  const sc = S.scenes[i];
+  if(!sc) return setStatus("err", "দৃশ্য পাওয়া যায়নি");
+  /* আগের দৃশ্যগুলোর দৈর্ঘ্যও মিলতে হবে — নইলে ভুল সময়ে আঁকা হবে */
+  for(let k = 0; k < i; k++){
+    if(Math.abs((+S.scenes[k].dur || 0) - (man.scenes[k] || 0)) > 0.06)
+      return setStatus("err", "আগের দৃশ্যের দৈর্ঘ্য বদলেছে — পুরো ভিডিও আবার বানাও।");
+  }
+  if(Math.abs((+sc.dur || 0) - (+man.scenes[i] || 0)) > 0.06)
+    return setStatus("err", "দৃশ্যের দৈর্ঘ্য বদলেছে — পুরো ভিডিও আবার বানাও।");
+
+  const btn = document.querySelector('[data-upd="' + i + '"]');
+  const oldTxt = btn ? btn.textContent : "";
+  if(btn){ btn.disabled = true; btn.textContent = "⏳"; }
+  try{
+    const start = man.scenes.slice(0, i).reduce((a, s) => a + s.dur, 0);
+    const fps = EXPORT_FPS;
+    const n = Math.max(1, Math.round(sc.dur * fps));
+    setStatus("busy", "🎬 দৃশ্য " + (i + 1) + " আঁকা হচ্ছে...");
+    const st = await fetch("/api/frames/start", { method: "POST" }).then(r => r.json());
+    if(!st.ok) throw new Error(st.error || "জব শুরু হয়নি");
+    for(let k = 0; k < n; k++){
+      draw(start + k / fps, false);
+      const url = stage.toDataURL("image/jpeg", 0.92);
+      const rr = await fetch("/api/frames?job=" + st.job + "&i=" + k + "&b64=1", { method: "POST", body: url.slice(url.indexOf(",") + 1) });
+      const fr = await rr.json().catch(() => null);
+      if(!rr.ok || !fr || !fr.ok) throw new Error("দৃশ্যের ফ্রেম সেভ হয়নি");
+      if(k % 6 === 0 || k === n - 1)
+        setStatus("busy", "🎬 দৃশ্য " + (i + 1) + " — " + Math.round(((k + 1) / n) * 100) + "%");
+    }
+    setStatus("busy", "🎬 দৃশ্যটা ভিডিওতে বসানো হচ্ছে...");
+    const qs = new URLSearchParams({ idx: String(i), job: st.job, start: start.toFixed(3), dur: (+man.scenes[i] || 0).toFixed(3) });
+    const r = await fetch("/api/scene/render?" + qs.toString(), { method: "POST" }).then(r => r.json());
+    if(!r.ok) throw new Error(r.error || "দৃশ্য-আপডেট ব্যর্থ");
+    $("#player").src = "/output/" + man.full + "?t=" + Date.now();
+    $("#player").load();
+    setStatus("ok", "✅ দৃশ্য " + (i + 1) + " ভিডিওতে বসে গেছে — বাকিগুলো অক্ষত");
+  }catch(e){
+    setStatus("err", e.message || "দৃশ্য-আপডেট ব্যর্থ");
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = "🎬"; }
+  }
+}
+
 function renderSceneEditor(){
   const box = $("#sceneEditorList");
   if(!box) return;
@@ -8149,6 +8215,7 @@ function renderSceneEditor(){
       + '<div class="se-head">'
       + '<span class="se-idx">' + (i + 1) + '</span>'
       + '<button class="chip se-play" data-play="' + i + '" title="শুধু এই দৃশ্যটা চালিয়ে দেখো">▶</button>'
+      + '<button class="chip se-upd" data-upd="' + i + '" title="শুধু এই দৃশ্যটা আগের ভিডিওতে বসাও (লেখা/দৈর্ঘ্য বদলালে পুরো ভিডিও আবার)">🎬</button>'
       + (sc.speaker
           ? '<span class="se-idx" style="background:var(--acc);color:#fff" title="বলছে">'
             + '🗣️ ' + esc(sc.speaker) + '</span>'
@@ -8215,6 +8282,11 @@ function renderSceneEditor(){
   // ▶ — শুধু এই দৃশ্যটা চালিয়ে দেখাও (শেষ হলে থেমে যায়)
   box.querySelectorAll("[data-play]").forEach(btn => {
     btn.onclick = () => playScene(parseInt(btn.dataset.play, 10));
+  });
+
+  // 🎬 — শুধু এই দৃশ্যটা আগের ভিডিওতে বসাও
+  box.querySelectorAll("[data-upd]").forEach(btn => {
+    btn.onclick = () => renderSceneUpdate(parseInt(btn.dataset.upd, 10));
   });
 
   // নতুন রো বসেছে — চলমান-দৃশ্য হাইলাইট আবার হিসাব করি
@@ -8429,7 +8501,8 @@ async function exportWebCodecs(fps, frameCount, musicKey, vjob, vdurs, sfxStr){
     loop: "0",
     repeat: "1",
     dur: S.total.toFixed(2),
-    raw_ready: "1"          /* ব্রাউজার-এনকোড MP4 ইতিমধ্যেই পরিষ্কার — পুনঃএনকোড নয় */
+    raw_ready: "1",         /* ব্রাউজার-এনকোড MP4 ইতিমধ্যেই পরিষ্কার — পুনঃএনকোড নয় */
+    sscen: S.scenes.map(s => (+s.dur).toFixed(3)).join(",")
   });
   if(vjob){ qs.set("vjob", vjob); qs.set("vdurs", vdurs.join(",")); }
   if(/[a-z]/.test(sfxStr || "")) qs.set("sfx", sfxStr);
@@ -8617,7 +8690,8 @@ $("#exportBtn").onclick = async () => {
       job: job,
       fps: String(fps),
       dur: S.total.toFixed(2),
-      music: musicKey
+      music: musicKey,
+      sscen: S.scenes.map(s => (+s.dur).toFixed(3)).join(",")
     });
     if(vjob){
       qs.set("vjob", vjob);
@@ -8647,6 +8721,7 @@ $("#exportBtn").onclick = async () => {
     $("#emptyResult").classList.add("hide");
     $("#result").classList.add("show");
     $("#resultCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    refreshManifest();
   }catch(e){
     setStatus("err", e.message || "এক্সপোর্ট ব্যর্থ");
   }finally{
@@ -8684,6 +8759,7 @@ $("#srtBtn").onclick = () => {
 /* ---------- boot ---------- */
 $("#script").value = SAMPLE.kids;
 applySize();
+refreshManifest();
 S.t = Math.min(1.4, S.total * 0.24);
 draw(S.t, false);
 updateTimeUI();

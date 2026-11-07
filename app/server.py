@@ -458,7 +458,81 @@ def _vt_available():
     return _VT_CACHE
 
 
-def frames_finish(job, fps, opts, voice_job, durs, music, total, sfx=None):
+def _parse_sscen(raw):
+    """দৃশ্য-দৈর্ঘ্যের কমা-তালিকা → ফ্লোট তালিকা।"""
+    out = []
+    for part in (raw or "").split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            out.append(round(float(part), 3))
+        except ValueError:
+            pass
+    return out
+
+
+def write_scene_manifest(name, sscenes):
+    """🎬 দৃশ্য-সম্পাদনার ম্যানিফেস্ট লেখা — একক-দৃশ্য আপডেটের ভিত্তি।"""
+    try:
+        man_dir = os.path.join(OUT, "_scenes")
+        os.makedirs(man_dir, exist_ok=True)
+        with open(os.path.join(man_dir, "manifest.json"), "w", encoding="utf-8") as f:
+            json.dump({"ok": True, "full": name, "scenes": sscenes}, f, ensure_ascii=False)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def scene_render(idx, job, start, dur):
+    """🎬 একক-দৃশ্য আপডেট — নতুন দৃশ্য-ভিডিও পুরনো ভিডিওর ওই সময়ে বসে যায়।"""
+    man_path = os.path.join(OUT, "_scenes", "manifest.json")
+    try:
+        with open(man_path, "r", encoding="utf-8") as f:
+            man = json.load(f)
+    except Exception:  # noqa: BLE001
+        return {"ok": False, "error": "আগে একবার পুরো ভিডিও বানাও"}
+    if not man.get("ok") or not man.get("full"):
+        return {"ok": False, "error": "ম্যানিফেস্ট ভাঙা — পুরো ভিডিও আবার বানাও"}
+    scenes = man.get("scenes", [])
+    if idx < 0 or idx >= len(scenes):
+        return {"ok": False, "error": "দৃশ্য-নম্বর শেষ ভিডিওর বাইরে — পুরো ভিডিও আবার বানাও"}
+    if abs(dur - scenes[idx]) > 0.06:
+        return {"ok": False, "error": "দৃশ্যের দৈর্ঘ্য বদলেছে — পুরো ভিডিও আবার বানাও"}
+    full = os.path.join(OUT, man["full"])
+    if not os.path.isfile(full):
+        return {"ok": False, "error": "পুরনো ভিডিও পাওয়া যায়নি"}
+
+    folder = os.path.join(FRAME_ROOT, os.path.basename(job))
+    if not os.path.isdir(folder):
+        return {"ok": False, "error": "দৃশ্যের ফ্রেম পাওয়া যায়নি"}
+
+    work = os.path.join(OUT, f"_tmp_{uuid.uuid4().hex[:10]}")
+    os.makedirs(work, exist_ok=True)
+    try:
+        seg = os.path.join(work, "scene.mp4")
+        animator.mv.run([animator.mv.FFMPEG, "-y",
+                         "-framerate", "30",
+                         "-i", os.path.join(folder, "f%05d.jpg"),
+                         "-c:v", "libx264", "-preset", "fast", "-crf", "20",
+                         "-pix_fmt", "yuv420p", seg])
+        fc = ("[1:v]format=yuv420p[scv];"
+              "[0:v][scv]scale2ref[base][ovr];"
+              "[base][ovr]overlay=x=0:y=0:"
+              "enable='between(t,{s:.3f},{e:.3f})'[v]").format(s=start, e=start + dur)
+        out = os.path.join(work, "updated.mp4")
+        animator.mv.run([animator.mv.FFMPEG, "-y", "-i", full, "-i", seg,
+                         "-filter_complex", fc,
+                         "-map", "[v]", "-map", "0:a?",
+                         "-c:v", "libx264", "-preset", "fast", "-crf", "20",
+                         "-c:a", "copy", out])
+        os.replace(out, full)
+        return {"ok": True, "name": man["full"], "url": "/output/" + man["full"]}
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+        shutil.rmtree(folder, ignore_errors=True)
+
+
+def frames_finish(job, fps, opts, voice_job, durs, music, total, sfx=None, sscenes=None):
     folder = os.path.join(FRAME_ROOT, os.path.basename(job))
     if not os.path.isdir(folder):
         return {"ok": False, "error": "এই জব পাওয়া যায়নি"}
@@ -563,6 +637,13 @@ def frames_finish(job, fps, opts, voice_job, durs, music, total, sfx=None):
 
     shutil.rmtree(work, ignore_errors=True)
     shutil.rmtree(folder, ignore_errors=True)
+
+    # 🎬 দৃশ্য-সম্পাদনার ম্যানিফেস্ট — পরে একক-দৃশ্য আপডেট এর ওপর বসবে
+    try:
+        if sscenes and res.get("ok"):
+            write_scene_manifest(res["name"], sscenes)
+    except Exception:  # noqa: BLE001
+        pass
     return res
 
 
@@ -650,6 +731,20 @@ class Handler(BaseHTTPRequestHandler):
         if self._foreign_host():
             return
         path = unquote(urlparse(self.path).path)
+
+        if path == "/api/scenes/manifest":
+            man_path = os.path.join(OUT, "_scenes", "manifest.json")
+            try:
+                with open(man_path, "r", encoding="utf-8") as f:
+                    body = f.read()
+            except Exception:  # noqa: BLE001
+                body = '{"ok": false}'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body.encode())))
+            self.end_headers()
+            self.wfile.write(body.encode())
+            return
 
         if path == "/api/chars":
             body = json.dumps({"ok": True, "chars": chars_load()},
@@ -764,6 +859,16 @@ class Handler(BaseHTTPRequestHandler):
                     q.get("music", [""])[0],
                     float((q.get("dur", ["0"])[0] or 0)),
                     sfx=_parse_sfx((q.get("sfx", [""])[0] or "")),
+                    sscenes=_parse_sscen((q.get("sscen", [""])[0] or "")),
+                )
+
+            elif path == "/api/scene/render":
+                q2 = parse_qs(parsed.query)
+                result = scene_render(
+                    int(float((q2.get("idx", ["0"])[0] or 0))),
+                    (q2.get("job", [""])[0] or "").strip(),
+                    float((q2.get("start", ["0"])[0] or 0)),
+                    float((q2.get("dur", ["0"])[0] or 0)),
                 )
 
             elif path == "/api/voice":
@@ -797,6 +902,7 @@ class Handler(BaseHTTPRequestHandler):
 
         voice_job = (q.get("vjob", [""])[0] or "").strip()
         sfx = _parse_sfx((q.get("sfx", [""])[0] or ""))
+        sscenes = _parse_sscen((q.get("sscen", [""])[0] or ""))
         music = q.get("music", [""])[0]
 
         opts = {
@@ -880,6 +986,12 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     res["voiced"] = False
 
+            # 🎬 দৃশ্য-সম্পাদনার ম্যানিফেস্ট (একক-দৃশ্য আপডেটের ভিত্তি)
+            try:
+                if sscenes and res.get("ok"):
+                    write_scene_manifest(res["name"], sscenes)
+            except Exception:  # noqa: BLE001
+                pass
             return res
         finally:
             shutil.rmtree(work, ignore_errors=True)
