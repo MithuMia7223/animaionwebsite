@@ -5307,7 +5307,60 @@ function clipReveal(type, p, w, h){
   ctx.clip();
 }
 
-/* ---------- ২) লিপ সিঙ্ক + পলক ---------- */
+/* ---------- 👄 ফোনিম লিপ-সিঙ্ক — বাংলা অক্ষর থেকে ঠোঁটের আকার ----------
+   প্রতিটা বাংলা অক্ষর ৬টা ভিসেম-শ্রেণিতে পড়ে:
+   ০ = ঠোঁট-চাপা (প-বর্গ), ১ = বড়-খোলা (অ/আ), ২ = চাপা (ই/এ/স-জাত),
+   ৩ = গোল (উ/ও-জাত), ৪ = মাঝারি (ক/ট/ত/ল/র-জাত), ৫ = নাসিক্য/বিরতি */
+const VISEME_CLASSES = [
+  [/^[পফবভ]$/, 0],
+  [/^[অআা]$/, 1],
+  [/^[ইঈিীেৈ]$/, 2],
+  [/^[উঊুূোৌ]$/, 3],
+  [/^[সশষ]$/, 2],
+  [/^[হয়য]$/, 1],
+  [/^[রলড়ঢ়]$/, 4],
+  [/^[কখগঘক্ষ]$/, 4],
+  [/^[চছজঝ]$/, 2],
+  [/^[টঠডঢ]$/, 4],
+  [/^[মনঙঞণ]$/, 5],
+  [/^[ংঃঁ]$/, 5],
+  [/^[ৃ]$/, 2],
+  [/^[০-৯0-9]$/, 4]
+];
+const VISEME_OPEN = [0.12, 0.90, 0.50, 0.50, 0.40, 0.0];
+const VISEME_VOWEL = [2, 0, 1, 2, 3, 0];
+
+function bengaliViseme(ch){
+  for(const [re, v] of VISEME_CLASSES){
+    if(re.test(ch)) return v;
+  }
+  return null;
+}
+
+function visemeString(text){
+  const out = [];
+  for(const ch of (text || "")){
+    if(/\s/.test(ch)){ out.push(5); continue; }
+    const v = bengaliViseme(ch);
+    if(v !== null) out.push(v);
+  }
+  return out;
+}
+
+/* সময় lt-তে কোন ভিসেম — দৃশ্যের লেখা অনুযায়ী ছড়ানো */
+function visemeAt(sc, lt){
+  if(!sc._visemes) sc._visemes = visemeString(sc.text || sc.title || "");
+  const vs = sc._visemes;
+  if(!vs.length){
+    /* লেখা-ছাড়া (ক্রিয়েটর-প্রিভিউ) — পুরনো ছন্দে নরম চলাচল */
+    const v = Math.floor(mod(lt * 7.5, 1) * 5) % 5;
+    return { open: 0.3 + 0.45 * (v === 0 ? 1 : 0.4), v: v };
+  }
+  const dur = Math.max(sc.dur || 1, 0.2);
+  const idx = clamp(Math.floor((lt / dur) * vs.length), 0, vs.length - 1);
+  const v = vs[idx];
+  return { open: VISEME_OPEN[v], v: VISEME_VOWEL[v] };
+}
 
 /* ---------- ২) লিপ সিঙ্ক + পলক ---------- */
 function envAt(sc, lt){
@@ -5658,13 +5711,17 @@ function charAnim(sc, lt, t){
   else if(expr === "scared"){ lookX = 0.2; lookY = -0.2; }
 
   const target = envAt(sc, lt);
-  const smooth = sc._mouth + (target - sc._mouth) * 0.5;
+  const vis = visemeAt(sc, lt);
+  /* অডিও-এনভেলপ খোলা-বন্ধ ঠিক করে; অক্ষর ঠোঁটের আকার ঠিক করে —
+     অডিও না থাকলেও অক্ষর-ছন্দে ঠোঁট নড়ে */
+  const open = Math.max(target, S.useLip ? vis.open * (target > 0.02 ? 1 : 0.72) : 0);
+  const smooth = sc._mouth + (open - sc._mouth) * 0.5;
   sc._mouth = S.useLip ? smooth : 0;
 
   // কথা বলার সময় ঠোঁট আ-ই-উ-এ-ও আকার নেয়
   let vowel = 0;
   if(sc._mouth > 0.06){
-    vowel = Math.floor(mod(lt * 7.5 + (sc.index || 0) * 0.6, 1) * 5) % 5;
+    vowel = visemeAt(sc, lt).v;   /* ঠোঁটের-আকার গল্পের অক্ষর থেকে */
   }
 
   return { action, expr, legA, legB, armA, armB, kneeA, kneeB, elbowA, elbowB,
