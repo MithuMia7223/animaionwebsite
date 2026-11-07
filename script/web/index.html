@@ -996,7 +996,7 @@ const CHARS = {
     ears: "cat", tail: "bush"
   },
   mouse: {
-    quad: true,
+    quad: true, smallCritter: true, legW: 12,
     kind: "animal", body: "animal", name: "ইঁদুর", label: "ইঁদুর", emoji: "🐭",
     fur: "#b9bcc6", furD: "#9a9dab",
     muzzle: "#f4f4f8", nose: "#ff9fb2",
@@ -5560,35 +5560,56 @@ function drawQuadChar(spec, a, sc, lt){
     quadLeg(66, a.legA || 0, true);    // দূরের-পেছনের-পা
   }
 
-  // লেজ — পেছন-থেকে-উঁচুতে-বেঁকে, ডোরা-গোড়া
-  ctx.save();
-  ctx.strokeStyle = fur;
-  ctx.lineWidth = 13; ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(86, 42);
-  ctx.quadraticCurveTo(132, 26, 126, -26 + Math.sin(lt * 2.2) * 6);
-  ctx.stroke();
-  ctx.strokeStyle = dark;
-  ctx.lineWidth = 13;
-  ctx.beginPath(); ctx.arc(126, -30 + Math.sin(lt * 2.2) * 6, 7, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
+  if(spec.smallCritter){
+    // 🐭 ইঁদুর-দেহ — গোলগাল ছোট্ট দেহ + সরু লম্বা লেজ (বাঘের-গড় নয়)
+    ctx.save();
+    ctx.strokeStyle = fur;
+    ctx.lineWidth = 5; ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(58, 62);
+    ctx.quadraticCurveTo(138, 54, 122, -14 + Math.sin(lt * 3) * 10);
+    ctx.stroke();
+    ctx.fillStyle = fur;
+    ctx.beginPath(); ctx.ellipse(-2, 48, 52, 44, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = spec.muzzle || "#fff";
+    ctx.beginPath(); ctx.ellipse(-8, 58, 30, 22, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.ellipse(-16, 24, 13, 18, -0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  } else {
+    // লেজ — পেছন-থেকে-উঁচুতে-বেঁকে, ডোরা-গোড়া
+    ctx.save();
+    ctx.strokeStyle = fur;
+    ctx.lineWidth = 13; ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(86, 42);
+    ctx.quadraticCurveTo(132, 26, 126, -26 + Math.sin(lt * 2.2) * 6);
+    ctx.stroke();
+    ctx.strokeStyle = dark;
+    ctx.lineWidth = 13;
+    ctx.beginPath(); ctx.arc(126, -30 + Math.sin(lt * 2.2) * 6, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
 
-  // দেহ — লম্বা-শক্তিশালী-বাঘের-গড় (কাঁধ-উঁচু, পাছা-ভারী)
-  ctx.fillStyle = fur;
-  ctx.beginPath();
-  ctx.moveTo(-84, 34);
-  ctx.quadraticCurveTo(-10, 6, 82, 30);      // পিঠ
-  ctx.quadraticCurveTo(110, 58, 80, 94);     // পাছা
-  ctx.quadraticCurveTo(0, 104, -72, 92);     // পেট
-  ctx.quadraticCurveTo(-106, 62, -84, 34);   // বুক-কাঁধ
-  ctx.closePath(); ctx.fill();
+    // দেহ — লম্বা-শক্তিশালী-বাঘের-গড় (কাঁধ-উঁচু, পাছা-ভারী)
+    ctx.fillStyle = fur;
+    ctx.beginPath();
+    ctx.moveTo(-84, 34);
+    ctx.quadraticCurveTo(-10, 6, 82, 30);      // পিঠ
+    ctx.quadraticCurveTo(110, 58, 80, 94);     // পাছা
+    ctx.quadraticCurveTo(0, 104, -72, 92);     // পেট
+    ctx.quadraticCurveTo(-106, 62, -84, 34);   // বুক-কাঁধ
+    ctx.closePath(); ctx.fill();
 
-  // হালকা-পেট
-  ctx.save();
-  ctx.globalAlpha = 0.4;
-  ctx.fillStyle = spec.muzzle || "#fff3d6";
-  ctx.beginPath(); ctx.ellipse(-4, 82, 60, 13, 0.03, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
+    // হালকা-পেট
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = spec.muzzle || "#fff3d6";
+    ctx.beginPath(); ctx.ellipse(-4, 82, 60, 13, 0.03, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
 
   // 🐯 ডোরা — পিঠ-পাছা-জুড়ে-নিচে-নামা-চাপ
   if(spec.stripes){
@@ -5626,9 +5647,9 @@ function drawQuadChar(spec, a, sc, lt){
   const gz = a.action === "graze" ? 1 : 0;
   const hdx = -102 + gz * 40, hdy = -26 + gz * 104 + (a.headY || 0) * 0.4;
 
-  // গলা — কাঁধ-থেকে-মাথায়
+  // গলা — কাঁধ-থেকে-মাথায় (ইঁদুরের গলা সরু)
   ctx.strokeStyle = fur;
-  ctx.lineWidth = 44; ctx.lineCap = "round";
+  ctx.lineWidth = spec.smallCritter ? 16 : 44; ctx.lineCap = "round";
   ctx.beginPath(); ctx.moveTo(-66, 40); ctx.lineTo(hdx + 6, hdy + 24); ctx.stroke();
 
   // মাথা — সামনে-নিচু (সত্যি-বাঘ-মাথা-অবস্থান)
@@ -6101,6 +6122,24 @@ function drawHead(spec, a, sc, lt){
     ctx.beginPath();
     ctx.moveTo(-4, 2); ctx.quadraticCurveTo(0, 14, 5, 8); ctx.quadraticCurveTo(3, 4, -4, 2);
     ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  // 🐭 গোঁফ — বিড়াল/বাঘ/ইঁদুরের মুখে (spec.whiskers)
+  if(spec.whiskers){
+    ctx.save();
+    ctx.globalAlpha = 0.45;
+    ctx.strokeStyle = spec.furD || "#555";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    [-1, 1].forEach(side => {
+      [0, 7, 14].forEach(dy => {
+        ctx.beginPath();
+        ctx.moveTo(side * 24, 14 + dy * 0.4);
+        ctx.lineTo(side * 47, 10 + dy);
+        ctx.stroke();
+      });
+    });
     ctx.restore();
   }
 
