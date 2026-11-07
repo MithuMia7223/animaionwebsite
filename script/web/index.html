@@ -1862,6 +1862,19 @@ const SFX_TEXT_RULES = [
   [["হাতি", "ট্রাম্পেট", "elephant"], "elephant"],
   [["বাঘ", "গর্জন", "সিংহ", "sher"], "tiger"],
   [["ব্যাঙ", "কুঁড়কুঁড়ে", "ম্যাঁকা"], "frog"],
+  // 🆕 লাইব্রেরি বর্ধন — নতুন শব্দ-পরিবার
+  [["নদী", "পুকুর", "সাঁতার", "স্রোত"], "river"],
+  [["আগুন", "পোড়া"], "fire"],
+  [["মৌমাছি", "মাছি", "ভোঁ ভোঁ"], "bee"],
+  [["হাঁস", "হাঁসে"], "duck"],
+  [["ট্রেন", "স্টেশন"], "train"],
+  [["গাড়ি", "গাড়িতে"], "car"],
+  [["ঘণ্টা", "ঘণ্টা বাজল"], "bell"],
+  [["ঢোল", "বাজনা", "জন্মদিন"], "drum"],
+  [["বজ্র", "মেঘ গর্জে"], "thunder"],
+  [["কোকিল", "কুহু কুহু"], "cuckoo"],
+  [["মোরগ", "মোরগের ডাক"], "rooster"],
+  [["কাক", "ক্যাঁ ক্যাঁ"], "crow"],
 ];
 function sfxOf(sc){
   if(!sc) return [];
@@ -1877,7 +1890,8 @@ function sfxOf(sc){
   if(!out.length && ((CHARS[sc.char] || {}).kind === "bird")) out.push("birds");
 
   // প্রাণী-ক্যারেক্টার হলে নিজের-গলা (হাতি/বাঘ/ব্যাঙ)
-  const voiceOf = { elephant: "elephant", tiger: "tiger", lion: "tiger", frog: "frog" };
+  const voiceOf = { elephant: "elephant", tiger: "tiger", lion: "tiger", frog: "frog",
+                    crow: "crow", duck: "duck", bee: "bee", hen: "rooster", rooster: "rooster" };
   const aniVoice = voiceOf[sc.char];
   if(aniVoice && !out.includes(aniVoice)) out.push(aniVoice);
 
