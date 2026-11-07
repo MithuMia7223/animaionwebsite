@@ -4875,10 +4875,15 @@ function charAnim(sc, lt, t){
   const action = sc.action || "talk";
   const expr = sc.expr || "neutral";
 
-  let legA = 0, legB = 0, armA = 0.14, armB = -0.14;
-  let kneeA = 0, kneeB = 0, elbowA = 0.18, elbowB = 0.18;
+  let legA = 0, legB = 0, kneeA = 0, kneeB = 0;
+  // হাতের নিষ্ক্রিয় দোলা — যে-অ্যাকশন নিজে হাত সেট করে না, সেখানেও প্রাণ থাকে
+  let armA = 0.14 + Math.sin(lt * 2.6) * 0.05;
+  let armB = -0.14 - Math.sin(lt * 2.6 + 1.3) * 0.05;
+  let elbowA = 0.18, elbowB = 0.18;
   let lift = 0, lean = 0, headY = 0, headTilt = 0, sway = 0;
-  let sx = 1, sy = 1;
+  // নিঃশ্বাস — সব অবস্থায় শরীর নরমভাবে ওঠানামা করে (অ্যাকশন নিজে সেট করলে সেটাই জেতে)
+  let sx = 1 + Math.sin(lt * 2.1) * 0.011;
+  let sy = 1 - Math.sin(lt * 2.1) * 0.009;
   let walkX = 0;
   let faceDir = 1;
 
