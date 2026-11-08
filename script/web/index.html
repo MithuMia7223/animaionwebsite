@@ -374,7 +374,7 @@
         </div>
 
         <label class="switch"><input type="checkbox" id="useChar" checked> ক্যারেক্টার + এক্সপ্রেশন + অ্যানিমেশন</label>
-        <label class="switch"><input type="checkbox" id="useSfx" checked> 🎬 অভিনয়ের শব্দ (পাখির ডাক / পায়ের শব্দ / বৃষ্টি)</label>
+        <label class="switch"><input type="checkbox" id="useSfx"> 🎬 অভিনয়ের শব্দ (পাখির ডাক / পায়ের শব্দ / বৃষ্টি)</label>
         <label class="switch"><input type="checkbox" id="useLip" checked> 🔊 ভয়েসের সাথে ঠোঁট নড়াও (লিপ সিঙ্ক)</label>
         <label class="switch"><input type="checkbox" id="useCamera" checked> 🎥 ক্যামেরা + প্যারালাক্স</label>
         <label class="switch"><input type="checkbox" id="useTransition" checked> 🎭 মাস্ক / ওয়াইপ ট্রানজিশন</label>
@@ -7913,9 +7913,19 @@ function draw(t, playing){
       else if(scene.cast && scene.cast.length > 1) drawGroup(scene, st, gt, w, h, sceneGround);
       else drawChar(scene, st, gt, w, h, sceneGround, px);
       ctx.restore();
-      drawEmoji(scene, st, w, h, true);
+      // 🚫 পর্দায় লেখা নেই, তাই লেখার-পাশের ইমোজি-ব্যান্ডও নেই — হাওয়ায় ভেসে থাকে না
     } else {
       drawEmoji(scene, st, w, h, false);
+    }
+
+    // 🌙 রাত/সন্ধ্যায় ক্যারেক্টারও দৃশ্যের আলোয় মেশে — পেস্ট-করা মনে হয় না
+    if(scene.mood === "night" || scene.mood === "dusk"){
+      ctx.save();
+      ctx.globalCompositeOperation = "multiply";
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = scene.mood === "night" ? "#8fa4d8" : "#ffc79a";
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
     }
 
     // জাদুর আলো — জোনাকি/তারা/মহাকাশের ঝিকমিক (ক্যারেক্টারের সামনে)
