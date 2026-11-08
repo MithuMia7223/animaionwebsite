@@ -1858,6 +1858,25 @@ function parseSpeaker(text){
   return { speaker: name, text: m[2].trim() };
 }
 
+/* ভয়েস-কল — পুরোনো নষ্ট keep-alive সংযোগে চুপচাপ ব্যর্থ না-হোক, ৩-বার চেষ্টা */
+async function apiVoice(payload){
+  let lastErr = null;
+  for(let a = 0; a < 3; a++){
+    try{
+      const r = await fetch("/api/voice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const vt = await r.json();
+      if(vt && vt.ok) return vt;
+      lastErr = new Error((vt && vt.error) || "ভয়েস-সার্ভার না");
+    }catch(e){ lastErr = e; }
+    await new Promise(rr => setTimeout(rr, 600));   // নতুন সংযোগে আবার
+  }
+  throw lastErr || new Error("ভয়েস-সার্ভার পাওয়া যায়নি");
+}
+
 /* ক্যারেক্টারের নাম (রাজু/মিতু/নিজের বানানো নাম) থেকে ক্যারেক্টার বের করা */
 function charByName(name){
   if(!name) return null;
@@ -7892,16 +7911,11 @@ $("#voicePrev").onclick = async () => {
   setStatus("busy", "🔊 ভয়েস তৈরি হচ্ছে — একটু দাঁড়াও...");
   try{
     const useTones = voiceKey === "auto";
-    const r = await fetch("/api/voice", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        texts: S.scenes.map(s => s.speaker ? s.text : ""),
-        voice: useTones ? "piper" : voiceKey,
-        tones: useTones ? S.scenes.map(toneOf) : null
-      })
+    const vt = await apiVoice({
+      texts: S.scenes.map(s => s.speaker ? s.text : ""),
+      voice: useTones ? "piper" : voiceKey,
+      tones: useTones ? S.scenes.map(toneOf) : null
     });
-    const vt = await r.json();
     if(!vt.ok) throw new Error(vt.error || "ভয়েস তৈরি হয়নি");
 
     setStatus(null);
@@ -8594,16 +8608,11 @@ $("#exportBtn").onclick = async () => {
     try{
       // অটো = প্রতি স্পিকারের গলা আলাদা; নাহলে সবাই এক গলা
       const useTones = voiceKey === "auto";
-      const r = await fetch("/api/voice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const vt = await apiVoice({
           texts: S.scenes.map(s => s.speaker ? s.text : ""),
           voice: useTones ? "piper" : voiceKey,
           tones: useTones ? S.scenes.map(toneOf) : null
-        })
       });
-      const vt = await r.json();
       if(!vt.ok) throw new Error(vt.error || "ভয়েস তৈরি হয়নি");
 
       let any = false;

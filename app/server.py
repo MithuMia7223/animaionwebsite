@@ -974,7 +974,13 @@ class Handler(BaseHTTPRequestHandler):
 
             elif path == "/api/voice":
                 length = int(self.headers.get("Content-Length", 0))
-                payload = json.loads(self.rfile.read(length) or b"{}")
+                body = self.rfile.read(length) or b"{}"
+                try:
+                    with open("/tmp/mithu_voice_debug.log", "a", encoding="utf-8") as df:
+                        df.write(f"[voice] body={len(body)}B texts~{body[:120]!r}\n")
+                except Exception:  # noqa: BLE001
+                    pass
+                payload = json.loads(body)
                 raw = (payload.get("voice") or "piya").lower()
                 # "piper" — নিউরাল-ইঞ্জিন-বাছাই; বাকিগুলো macOS say-ভয়েস-নাম
                 voice = "piper" if raw == "piper" else VOICE_NAMES.get(raw, "Piya")
