@@ -7820,12 +7820,8 @@ function draw(t, playing){
     // 🎬 ভিনিয়েট — সবার উপর, শুধু কিনারা গাঢ় হয়
     drawVignette(w, h);
 
-    if(textAlpha > 0.01){
-      ctx.save();
-      ctx.globalAlpha *= Math.min(1, textAlpha);
-      drawText(scene, st, w, h);
-      ctx.restore();
-    }
+    // 🚫 পর্দায় আর কোনো লেখা লেখা হয় না — শুধু অভিনয়;
+    //   কথাগুলো YouTube-ক্যাপশন হিসেবে চাইলে আলাদা .srt নামাও (📄 বোতাম)
   };
 
   const reveal = clamp(lt / 0.42, 0, 1);
