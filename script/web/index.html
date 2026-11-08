@@ -2292,6 +2292,7 @@ function buildStorySpec(name, evLines){
     spec.name = name; spec.label = "গল্প"; spec.story = true;
     const referred = STORY_COLORS.find(([re]) => re.test(low));
     if(referred){ spec.fur = referred[1]; spec.furD = darken(referred[1], 0.18); }
+    spec._storyColor = !!referred;
     if(/ছোট্ট?|খুদ্র/.test(low)) spec.size = (spec.size || 1) * 0.88;
     if(/বড়|বিশাল|লম্বা|মোটা/.test(low)) spec.size = (spec.size || 1) * 1.12;
     return spec;
@@ -2318,6 +2319,7 @@ function buildStorySpec(name, evLines){
 
   const referred = STORY_COLORS.find(([re]) => re.test(low));
   if(referred){ spec.shirt = referred[1]; spec.shirtD = darken(referred[1], 0.18); }
+  spec._storyColor = !!referred;
   if(oldM){ spec.beard = true; spec.glasses = true; }
   if(oldF) spec.glasses = true;
   if(child) spec.size = (spec.size || 1) * 0.92;
@@ -2338,7 +2340,8 @@ function storyRead(lines){
     // নিজের-বানানো/প্রিসেটের নাম হলে ওটাই থাকবে — ডিডাইন দরকার নেই
     if(charByName(info.name)) return;
     const spec = buildStorySpec(info.name, lines.filter((l, li) => info.ev.includes(li)));
-    if(spec.kind === "human" && !spec.shirt){
+    // 🎨 গল্পে রং না-বললে প্রতিটা মানুষ-চরিত্র আলাদা রঙের — দুইজনকে যমজ দেখায় না
+    if(spec.kind === "human" && !spec._storyColor){
       const PAL = ["#ef4444","#3b82f6","#22a55b","#eab308","#8b5cf6","#f97316","#14b8a6","#ec4899"];
       spec.shirt = PAL[k % PAL.length];
       spec.shirtD = darken(spec.shirt, 0.18);
@@ -5789,6 +5792,20 @@ function charAnim(sc, lt, t){
 
 /* ---------- ১) ও ৪) ক্যারেক্টার আঁকা ---------- */
 /* ---------- ২) সংলাপের কাস্ট — স্পিকার বলে, আগের কথকরা শোনে ---------- */
+/* 🎭 একই চেহারার দুই চরিত্র পাশাপাশি এলে দ্বিতীয়জন আলাদা রঙ পায় — যমজ ভাব দূর */
+const DUO_PAL = ["#ef4444","#22a55b","#eab308","#8b5cf6","#f97316","#14b8a6","#ec4899","#3b82f6"];
+function distinctSpec(id, seen){
+  const base = CHARS[id] || CHARS.boy;
+  const key = s => (s.kind || "") + "|" + (s.kind === "human" ? (s.shirt || "") : (s.fur || "")) + "|" + (s.hair || "");
+  if(!seen.some(s => key(s) === key(base))) return base;
+  if(base.kind !== "human") return base;      // প্রাণীর নিজস্ব রং নষ্ট করি না
+  const spec = Object.assign({}, base);
+  const c = DUO_PAL[seen.length % DUO_PAL.length];
+  spec.shirt = c;
+  spec.shirtD = darken(c, 0.18);
+  return spec;
+}
+
 function drawCast(sc, lt, t, w, h, groundY){
   const others = (sc._others || []).filter(id => CHARS[id]);
   // স্ক্রিপ্টে "ডানে" লেখা থাকলে স্পিকার সেই পাশে দাঁড়ায়
@@ -5797,12 +5814,15 @@ function drawCast(sc, lt, t, w, h, groundY){
     ? [{ x: 0.31, s: 0.80 }, { x: 0.13, s: 0.68 }]  // ডানে বললে শোনকরা বাঁয়ে
     : [{ x: 0.69, s: 0.80 }, { x: 0.87, s: 0.68 }];
 
+  const seen = [];
   others.forEach((id, k) => {
     const spot = LIST_SPOTS[k];
+    const dSpec = distinctSpec(id, seen);
+    seen.push(dSpec);
     // যে শুনছে — মুখ বন্ধ, একটু ছোট হয়ে, নিজের ভাও নিয়ে দাঁড়িয়ে
     const liScene = Object.assign({}, sc, {
       char: id,
-      spec: null,
+      spec: dSpec,
       action: "talk",
       expr: (sc.expr === "sad" || sc.expr === "cry" || sc.expr === "scared") ? sc.expr : "neutral",
       env: new Array(600).fill(0),   // ঠোঁট নড়বে না
@@ -5824,9 +5844,12 @@ function drawGroup(sc, lt, t, w, h, groundY){
   const spots = ids.length === 2
     ? [{ x: 0.35, s: 0.92 }, { x: 0.70, s: 0.92 }]
     : [{ x: 0.22, s: 0.80 }, { x: 0.50, s: 0.92 }, { x: 0.78, s: 0.80 }];
+  const seen = [];
   ids.forEach((id, k) => {
     const spot = spots[k];
-    const g2 = Object.assign({}, sc, { char: id, _mouth: 0 });
+    const dSpec = distinctSpec(id, seen);
+    seen.push(dSpec);
+    const g2 = Object.assign({}, sc, { char: id, spec: dSpec, _mouth: 0 });
     drawChar(g2, lt + 0.13 * k, t, w, h, groundY, spot.x, spot.s);
   });
 }
@@ -5925,8 +5948,9 @@ function drawChar(sc, lt, t, w, h, groundY, posX, scaleMul){
     drawGhostArms(spec, a);
   } else if(body !== "fish"){
     const armX = spec.trunk ? 46 : 40;   // হাতির মোটা-ভুজ দূরে
-    drawArm(-armX, 0, a.armA, spec, spec.kind === "human", true, a.elbowA);
-    drawArm(armX, 0, a.armB, spec, spec.kind === "human", false, a.elbowB);
+    const armY = spec.kind === "human" ? -20 : 0;   // 🤝 কাঁধ থেকে হাত নামে — বুকের মাঝ থেকে নয়
+    drawArm(-armX, armY, a.armA, spec, spec.kind === "human", true, a.elbowA);
+    drawArm(armX, armY, a.armB, spec, spec.kind === "human", false, a.elbowB);
   }
 
   if(body === "fish") drawFishParts(spec, a);
@@ -5936,20 +5960,27 @@ function drawChar(sc, lt, t, w, h, groundY, posX, scaleMul){
     // 🐟 মাছের-মুখ দেহের-নিজের-ভেতরে-আঁকা — আলাদা-মাথা-নয়
     ctx.restore();
   } else {
-    ctx.translate(0, -74 + a.headY);
+    // 🧑 রিয়েল-মানুষের অনুপাত — মাথা বুকের সমান চওড়া নয়; ছোট মাথা, থুতনি গলায়
+    const hk = spec.kind === "human" ? 0.72 : 1;
+    ctx.translate(0, (hk === 1 ? -74 : -72) + a.headY);
     ctx.rotate(a.headTilt);
+    if(hk !== 1) ctx.scale(hk, hk);
     drawHead(spec, a, sc, lt);
     ctx.restore();
   }
 
-  // ঘুমের সময় "জজজ" ভেসে ওঠে
+  // 😴 ঘুমের সময় মুখ থেকে নরম শ্বাস-বুদবুদ ভেসে ওঠে (পর্দায় কোনো লেখা নয়)
   if(a.action === "sleep"){
     ctx.save();
-    ctx.font = "800 42px " + FONT;
     for(let i = 0; i < 3; i++){
-      ctx.globalAlpha = 0.35 + 0.45 * Math.abs(Math.sin(lt * 1.6 - i * 0.9));
-      ctx.fillStyle = "#9ad7ff";
-      ctx.fillText("জ", 66 + i * 30, -188 - i * 34 + Math.sin(lt * 1.3 + i) * 7);
+      const ph = mod(lt * 0.55 + i * 0.33, 1);
+      const r = 4 + ph * 5;
+      ctx.globalAlpha = 0.40 * (1 - ph);
+      ctx.strokeStyle = "#9ad7ff";
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.arc(64 + i * 10 + Math.sin(lt * 1.3 + i) * 8, -150 - ph * 84, r, 0, Math.PI * 2);
+      ctx.stroke();
     }
     ctx.restore();
   }
@@ -5985,8 +6016,15 @@ function drawLeg(x, y, ang, spec, knee){
     ctx.beginPath(); ctx.ellipse(8, 38, 20, 6, 0, 0, Math.PI * 2); ctx.fill();     // তলার ছায়া
     ctx.globalAlpha = 1;
   } else {
-    ctx.fillStyle = spec.shoe || spec.furD;
-    ctx.beginPath(); ctx.ellipse(6, 32, 17, 9, 0, 0, Math.PI * 2); ctx.fill();
+    // 🦶 পা — গোড়ালি থেকে সামনের পাতা পর্যন্ত (আসল পায়ের মতো লম্বা)
+    ctx.fillStyle = spec.pants || spec.furD;
+    ctx.beginPath(); ctx.ellipse(0, 24, 11, 7, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = spec.shoe || "#1f2937";
+    roundRect(-10, 22, 32, 15, 7.5); ctx.fill();
+    ctx.globalAlpha = 0.30;                        // পায়ের নিচে মাটির ছায়া
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.ellipse(6, 39, 16, 3.6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
   }
   ctx.restore();
 }
@@ -6008,8 +6046,24 @@ function drawArm(x, y, ang, spec, human, back, elbow){
   ctx.lineWidth = spec.trunk ? 23 : 16;
   ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 30); ctx.stroke();
 
-  ctx.fillStyle = human ? spec.skin : spec.furD;
-  ctx.beginPath(); ctx.arc(0, 36, spec.trunk ? 12 : 9.5, 0, Math.PI * 2); ctx.fill();
+  // 🤚 হাত — তালু + আঙুল (আগে শুধু একটা গোল বল ছিল)
+  const hs = spec.trunk ? 1.25 : 1;
+  const hCol = human ? spec.skin : spec.furD;
+  ctx.fillStyle = hCol;
+  ctx.beginPath(); ctx.ellipse(0, 38, 10.5 * hs, 9 * hs, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = hCol;
+  ctx.lineWidth = 3.4 * hs;
+  ctx.lineCap = "round";
+  [-1, 0, 1].forEach(f => {                        // তিনটে আঙুল
+    ctx.beginPath();
+    ctx.moveTo(f * 4.4 * hs, 43 * hs);
+    ctx.lineTo(f * 5.4 * hs, 49 * hs);
+    ctx.stroke();
+  });
+  ctx.beginPath();                                 // বুড়ো আঙুল
+  ctx.moveTo(-7.5 * hs, 38 * hs);
+  ctx.lineTo(-12.5 * hs, 41 * hs);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -6030,24 +6084,29 @@ function drawQuadChar(spec, a, sc, lt){
   const poseSy = lying ? 0.60 : sitting ? 0.80 : 1;
   const poseSx = lying ? 1.02 : sitting ? 1.04 : 1;
   ctx.save();
-  ctx.translate(0, poseY);
+  ctx.translate(0, poseY - 10);
   ctx.scale(poseSx, poseSy);
 
   // পা — হাঁটার-গতিতে (হাতির-মতো-মোটা-থাম্বা-নয়, বাঘের-নরম-পা)
   function quadLeg(x, ang, far){
-    const lw = spec.legW || 25;
+    const lw = spec.legW || 22;
     ctx.save();
     ctx.translate(x, 76);
     ctx.rotate(ang * 0.55);
     ctx.lineCap = "round";
     ctx.strokeStyle = far ? dark : fur;
     ctx.lineWidth = lw;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 30); ctx.stroke();
-    ctx.translate(0, 30);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 34); ctx.stroke();
+    ctx.translate(0, 34);
     ctx.rotate(-ang * 0.4);
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 26); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 30); ctx.stroke();
+    // 🐾 থাবা — পা-লম্বা, সামনে-বাড়ানো (বাঘের-থাবা)
     ctx.fillStyle = far ? dark : fur;
-    ctx.beginPath(); ctx.ellipse(3, 29, lw * 0.62, lw * 0.38, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(5, 33, lw * 0.66, lw * 0.40, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.30;
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.ellipse(5, 38, lw * 0.60, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
     ctx.restore();
   }
   if(!lying && !sitting){            // শুয়ে/বসে-থাকলে পা-দেহের-নিচে-গুটানো
@@ -6151,7 +6210,7 @@ function drawQuadChar(spec, a, sc, lt){
   ctx.save();
   ctx.translate(hdx, hdy);
   ctx.rotate((a.headTilt || 0) * 0.5 + gz * 0.5);
-  ctx.scale(0.88, 0.88);      // মাথা-দেহের-অনুপাত — বাঘের-মাথা-ছোট
+  ctx.scale(0.74, 0.74);      // মাথা-দেহের-অনুপাত — বাঘের-মাথা-ছোট, বিড়ালের-মতান নয়
   drawHead(spec, a, sc, lt);
   ctx.restore();
 
@@ -6381,12 +6440,13 @@ function drawBody(spec, a){
     shirtGrad.addColorStop(1, spec.shirtD);
     ctx.fillStyle = shirtGrad;
     ctx.beginPath();
-    ctx.moveTo(-30, -34);                                   // বাঁ-কাঁধ
-    ctx.quadraticCurveTo(0, -48, 30, -34);                  // কাঁধ-রেখা
-    ctx.quadraticCurveTo(48, -28, 44, 24);                  // ডান-হাতা
-    ctx.quadraticCurveTo(30, 62, 0, 64);                    // নিচে-বক্র
-    ctx.quadraticCurveTo(-30, 62, -44, 24);                 // বাঁ-হাতা
-    ctx.quadraticCurveTo(-48, -28, -30, -34);
+    ctx.moveTo(-34, -34);                                   // বাঁ-কাঁধ
+    ctx.quadraticCurveTo(0, -48, 34, -34);                  // কাঁধ-রেখা
+    ctx.quadraticCurveTo(45, -22, 39, 8);                   // ডান-কাঁধ-চওড়া
+    ctx.quadraticCurveTo(34, 40, 29, 60);                   // কোমর-সরু
+    ctx.quadraticCurveTo(0, 68, -29, 60);                   // নিচে
+    ctx.quadraticCurveTo(-34, 40, -39, 8);                  // বাঁ-কোমর
+    ctx.quadraticCurveTo(-45, -22, -34, -34);
     ctx.closePath(); ctx.fill();
     // গলার-নিচে ছায়া — মাথা শরীরের উপর ছায়া ফেলে (রিয়েল-আলো)
     ctx.globalAlpha = 0.15;
