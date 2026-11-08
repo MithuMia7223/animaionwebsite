@@ -1850,7 +1850,8 @@ function dirsOf(say){
 
 /* ---------- সংলাপ: "রাজু: কেমন আছো?" — নাম ধরে ধরে কে বলছে ---------- */
 function parseSpeaker(text){
-  const m = /^([^\s:：]{1,12})[:：]\s*(.+)$/s.exec((text || "").trim());
+  // "রাজু: ..." আর "পেঁচা দাদু: ..." — দুই-শব্দের-নামও-চেনা (নামে-স্পেস-চলবে)
+  const m = /^([^:：]{1,24})[:：]\s*(.+)$/s.exec((text || "").trim());
   if(!m) return null;
   const name = m[1].trim();
   if(!name || /^[0-9০-৯]+$/.test(name)) return null;   // "৩:০০ ঘটিকায়" ধরবে না
@@ -2210,6 +2211,9 @@ function storyNames(lines){
     if(!sp || !sp.speaker) return;
     const low = String(sp.speaker).toLowerCase().replace(/[^\u0980-\u09FF]/g, "");
     if(stop.has(low) || stop.has(nameStem(low))) return;
+    // "পেঁচা দাদু:" — নামের-যে-কোনো-শব্দ-চেনা-চরিত্র-হলে নকল-চরিত্র-নয়, আসল-চরিত্রই-বলবে
+    const wds = low.split(/\s+/).filter(Boolean);
+    if(wds.some(w => stop.has(w) || stop.has(nameStem(w)))) return;
     touch(sp.speaker, li, 5);
   });
 
@@ -2377,7 +2381,9 @@ function makeScenes(lines){
       bg: st.bg[i % st.bg.length],
       char: ch,
       expr: detectExpr(say, i),
-      action: detectAction(say),
+      // 🎭 বর্ণনা-লাইন (কেউ-কথা-বলে-না) — নির্দিষ্ট-অভিনয়-না-মিললে চুপচাপ-ঠোঁট-নয়,
+      // চরিত্র-চারপাশে-চোখ-চারায় (look); সংলাপ-লাইনে-talk-ই-থাকে
+      action: detectAction(say) === "talk" && !speaker ? "look" : detectAction(say),
       scene: (() => {
         let sc;
         if(S.sceneSel && S.sceneSel !== "auto") sc = S.sceneSel;
@@ -7890,7 +7896,7 @@ $("#voicePrev").onclick = async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        texts: S.scenes.map(s => s.text),
+        texts: S.scenes.map(s => s.speaker ? s.text : ""),
         voice: useTones ? "piper" : voiceKey,
         tones: useTones ? S.scenes.map(toneOf) : null
       })
@@ -8592,7 +8598,7 @@ $("#exportBtn").onclick = async () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          texts: S.scenes.map(s => s.text),
+          texts: S.scenes.map(s => s.speaker ? s.text : ""),
           voice: useTones ? "piper" : voiceKey,
           tones: useTones ? S.scenes.map(toneOf) : null
         })
