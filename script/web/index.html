@@ -1941,7 +1941,8 @@ function charFromNouns(say){
 
 /* আবহাওয়া/প্রকৃতি-লাইন ("ভোরে সূর্য উঠল", "বৃষ্টি নামল") — রাজুকে বাধিয়া টেনে
    নেওয়ার বদলে পরর্দাই অভিনয় করে (সূর্য ওঠা, বৃষ্টি-আবহ) */
-const FREE_NOUN_RE = /প্রজাপতি|মৌমাছি|পোকা|বৃষ্টি|বাদল|বর্ষা|জোছনা|চাঁদ|তারা|মেঘ|সূর্য|বজ্র|কুয়াশা|মেলা|দোকান|বাজার|বেলুন/;
+/* ⚠️ "তারা" বাদ — এটা প্রায়ই সর্বনাম (they); এতে গল্পের লাইনে ক্যারেক্টারই বাদ পড়ে যেত */
+const FREE_NOUN_RE = /প্রজাপতি|মৌমাছি|পোকা|বৃষ্টি|বাদল|বর্ষা|জোছনা|চাঁদ|মেঘ|সূর্য|বজ্র|কুয়াশা|মেলা|দোকান|বাজার|বেলুন/;
 function nounIsFree(say){
   return FREE_NOUN_RE.test(say || "");
 }
@@ -2375,6 +2376,9 @@ function makeScenes(lines){
   // গল্পের ধারাবাহিকতা — নতুন জায়গার কথা না এলে আগের দৃশ্যেই থাকে
   let lastScene = "";
   let lastMood = "";
+  let sceneRun = 0;        // একই জায়গা কত দৃশ্য ধরে চলছে
+  let explicitMood = "";   // গল্পে সময়ের কথা একবার বললে সেই আলোই থাকে
+  const pairPool = [];     // এ-পর্যন্ত যারা অভিনয় করেছে ("দুজন" হলে তারাই আসে)
   const scs = lines.map((text, i) => {
     // "রাজু: কেমন আছো?" → নাম আলাদা, কথাটা টেক্সট
     const sp = parseSpeaker(text);
@@ -2408,10 +2412,22 @@ function makeScenes(lines){
       action: detectAction(say) === "talk" && !speaker ? "look" : detectAction(say),
       scene: (() => {
         let sc;
-        if(S.sceneSel && S.sceneSel !== "auto") sc = S.sceneSel;
+        if(S.sceneSel && S.sceneSel !== "auto"){ sc = S.sceneSel; sceneRun = 0; }
         else {
-          sc = detectScene(say, i);
-          if(!sc) sc = lastScene || SCENE_CYCLE[i % SCENE_CYCLE.length];
+          const found = detectScene(say, i);
+          if(found){
+            sc = found;
+            sceneRun = (found === lastScene) ? sceneRun + 1 : 1;
+          } else if(!lastScene){
+            sc = SCENE_CYCLE[i % SCENE_CYCLE.length];
+            sceneRun = 1;
+          } else if(sceneRun < 3){
+            sc = lastScene;                    // গল্প এখানেই চলছে — ধারাবাহিকতা রাখি
+            sceneRun++;
+          } else {
+            sc = nextSceneAfter(lastScene);    // ৩ দৃশ্যের বেশি এক জায়গায় নয়
+            sceneRun = 1;
+          }
         }
         lastScene = sc;
         return sc;
@@ -2426,7 +2442,9 @@ function makeScenes(lines){
           }
           if(m) break;
         }
-        if(!m) m = lastMood;
+        // গল্পে সময়ের কথা থাকলে সেটাই পাকা; না থাকলে দিন-রাত নিজে এগোয়
+        if(m) explicitMood = m;
+        if(!m) m = explicitMood || moodByProgress(i, lines.length);
         lastMood = m;
         return m;
       })(),
@@ -2455,7 +2473,15 @@ function makeScenes(lines){
     castAdd(o.char);
     for(const w of words) castAdd(charByName(w.replace(/[।,.!?"'\u0964\u0965]/g, "")));
     for(const [ws, id] of NOUN_CAST){ if(ws.some(x => say.includes(x))) castAdd(id); }
+    // 👥 "দুজন", "সবাই", "ওরা" — আগে যারা অভিনয় করেছে সবাই একসাথে মঞ্চে
+    if(/দুজন|দুইজন|দুজনে|তিনজন|সবাই|ওরা/.test(say)){
+      pairPool.forEach(id => castAdd(id));
+      STORY_LIST.forEach(s => castAdd(s.id));
+    }
     if(o.cast.length < 2) o.cast = null;
+    (o.cast && o.cast.length ? o.cast : [o.char]).forEach(id => {
+      if(id && CHARS[id] && !pairPool.includes(id)) pairPool.push(id);
+    });
 
     // গাছে-বসা-ডাকা-পাখি — পাখি ডালেই ডাকে, মাটিতে আলাদা দাঁড়ায় না
     if(o.actors.includes("perch")){ o.char = null; o.cast = null; }
@@ -2691,6 +2717,27 @@ function detectScene(text, idx){
   return "";
 }
 
+/* 🏞️ এক জায়গায় আটকে না থেকে গল্প এগোবে — ৩ দৃশ্যের পর নতুন জায়গা */
+const SCENE_RING = ["jungle","river","village","city","farm","mountain","sea","school","stage","night","room","snow","sunrise"];
+function nextSceneAfter(last){
+  const start = Math.max(0, SCENE_RING.indexOf(last));
+  for(let k = 1; k <= SCENE_RING.length; k++){
+    const c = SCENE_RING[(start + k) % SCENE_RING.length];
+    if(c !== last) return c;
+  }
+  return "room";
+}
+
+/* 🕐 গল্পে সময়ের কথা না বললেও দিন এগোবে — ভোর → দুপুর → সন্ধ্যা → রাত */
+function moodByProgress(i, total){
+  if(!total || total < 3) return "noon";
+  const p = i / Math.max(1, total - 1);
+  if(p < 0.18) return "dawn";
+  if(p < 0.52) return "noon";
+  if(p < 0.76) return "dusk";
+  return "night";
+}
+
 /* 🎨 রঙ-গ্রেডিং — গল্পের সময়-মুড অনুযায়ী আলো (ভোর/দুপুর/সন্ধ্যা/রাত) */
 const MOOD_MAP = [
   [["রাত", "নিশি", "মধ্যরাত", "ঘুম"], "night"],
@@ -2731,7 +2778,7 @@ function detectProps(text){
       if(matchKey(low, k.toLowerCase())){ out.push(key); break; }
     }
   }
-  return out.slice(0, 2);
+  return out.slice(0, 1);
 }
 
 /* প্রপ আঁকা — মাটিতে ছায়াসহ, হালকা দোলা */
@@ -2739,7 +2786,7 @@ function drawProps(sc, t, w, h){
   const props = sc.props || [];
   if(!props.length) return;
   const ground = h * 0.90;
-  const size = Math.min(w, h) * 0.075;
+  const size = Math.min(w, h) * 0.095;
   props.forEach((p, i) => {
     const x = w * (0.76 + i * 0.12);
     const y = ground - size * 0.55;
