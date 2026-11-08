@@ -275,9 +275,11 @@ def make_voice(texts, voice, tones=None):
         ok = False
         if voice == "piper" and piper_ready():
             try:
-                animator.mv.run([sys.executable, "-m", "piper",
-                                 "-m", PIPER_MODEL, "-c", PIPER_CONFIG,
-                                 "-f", wav, txt])
+                # ⚠️ mv.run() ffmpeg-এর জন্য (মাঝে -hide_banner ঢোকায়) — piper-এ সরাসরি subprocess
+                subprocess.run([sys.executable, "-m", "piper",
+                                "-m", PIPER_MODEL, "-c", PIPER_CONFIG,
+                                "-f", wav, txt],
+                               check=True, capture_output=True, timeout=300)
                 ok = os.path.exists(wav) and os.path.getsize(wav) > 400
             except Exception:  # noqa: BLE001
                 ok = False
@@ -973,7 +975,9 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/voice":
                 length = int(self.headers.get("Content-Length", 0))
                 payload = json.loads(self.rfile.read(length) or b"{}")
-                voice = VOICE_NAMES.get((payload.get("voice") or "piya").lower(), "Piya")
+                raw = (payload.get("voice") or "piya").lower()
+                # "piper" — নিউরাল-ইঞ্জিন-বাছাই; বাকিগুলো macOS say-ভয়েস-নাম
+                voice = "piper" if raw == "piper" else VOICE_NAMES.get(raw, "Piya")
                 result = make_voice(payload.get("texts") or [], voice,
                                     tones=payload.get("tones"))
 

@@ -7891,7 +7891,7 @@ $("#voicePrev").onclick = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         texts: S.scenes.map(s => s.text),
-        voice: useTones ? "piya" : voiceKey,
+        voice: useTones ? "piper" : voiceKey,
         tones: useTones ? S.scenes.map(toneOf) : null
       })
     });
@@ -8593,7 +8593,7 @@ $("#exportBtn").onclick = async () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           texts: S.scenes.map(s => s.text),
-          voice: useTones ? "piya" : voiceKey,
+          voice: useTones ? "piper" : voiceKey,
           tones: useTones ? S.scenes.map(toneOf) : null
         })
       });
